@@ -1,4 +1,5 @@
 import { getFilename } from "@opencode-ai/core/util/path"
+import { base64Encode } from "@opencode-ai/core/util/encode"
 import { type Session } from "@opencode-ai/sdk/v2/client"
 import { pathKey } from "@/utils/path-key"
 import type { ServerConnection } from "@/context/server"
@@ -83,9 +84,58 @@ export function homeProjectNavigation(active: ServerConnection.Key, server: Serv
   return { server, href }
 }
 
+export const homeNewTaskPrompt = () => "请先帮我为这个项目新建一个任务计划，拆分目标、步骤和验证方式。"
+
+export const homeNewProjectPrompt = () =>
+  "请作为 DevEco Code 的项目创建向导，当前会话目录就是新项目的存放目录。先确认我要创建的项目名称、应用类型和目标平台；如果我要创建 HarmonyOS 或 ArkTS 项目，必须使用 deveco-create-project skill 执行实际创建，这相当于走 deveco create 新建工程流程，不要只给方案或手动复制文件。创建前按 skill 规则确认 appName；创建成功后再继续后续页面或功能实现。"
+
+export function homeNewSessionHref(directory: string, prompt?: string) {
+  const href = `/${base64Encode(directory)}/session`
+  const trimmed = prompt?.trim()
+  if (!trimmed) return href
+  return `${href}?prompt=${encodeURIComponent(trimmed)}`
+}
+
 export function homeProjectDirectories(result: string | string[] | null) {
   if (!result) return []
   return Array.isArray(result) ? result : [result]
+}
+
+export type HomeWorkbenchStat = {
+  id: "project" | "sessions" | "projects" | "status"
+  label: string
+  value: string
+  tone: "base" | "muted" | "success" | "warning"
+}
+
+export function homeWorkbenchStatusLabel(healthy: boolean | undefined) {
+  if (healthy === true) return "已连接"
+  if (healthy === false) return "未连接"
+  return "连接中"
+}
+
+export function homeWorkbenchStats(input: {
+  projects: number
+  sessions: number
+  selectedProject?: string
+  healthy?: boolean
+}): HomeWorkbenchStat[] {
+  return [
+    {
+      id: "project",
+      label: "当前项目",
+      value: input.selectedProject || "未选择",
+      tone: input.selectedProject ? "base" : "muted",
+    },
+    { id: "sessions", label: "会话", value: String(input.sessions), tone: "base" },
+    { id: "projects", label: "项目", value: String(input.projects), tone: "base" },
+    {
+      id: "status",
+      label: "服务",
+      value: homeWorkbenchStatusLabel(input.healthy),
+      tone: input.healthy === true ? "success" : input.healthy === false ? "warning" : "muted",
+    },
+  ]
 }
 
 export function homeSessionServerStatus(active: boolean, status: () => { working: boolean; tint?: string }) {

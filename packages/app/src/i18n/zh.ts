@@ -82,8 +82,8 @@ export const dict = {
   "command.model.choose": "选择模型",
   "command.model.choose.description": "选择不同的模型",
 
-  "command.mcp.toggle": "切换 MCPs",
-  "command.mcp.toggle.description": "切换 MCPs",
+  "command.mcp.toggle": "切换 MCP",
+  "command.mcp.toggle.description": "切换 MCP",
 
   "command.agent.cycle": "切换智能体",
   "command.agent.cycle.description": "切换到下一个智能体",
@@ -94,7 +94,7 @@ export const dict = {
   "command.model.variant.cycle.description": "切换到下一个强度等级",
 
   "command.prompt.mode.shell": "Shell",
-  "command.prompt.mode.normal": "Prompt",
+  "command.prompt.mode.normal": "提示词",
 
   "command.permissions.autoaccept.enable": "自动接受权限",
   "command.permissions.autoaccept.disable": "停止自动接受权限",
@@ -255,7 +255,7 @@ export const dict = {
   "prompt.placeholder.summarizeComments": "总结评论…",
   "prompt.placeholder.summarizeComment": "总结该评论…",
   "prompt.mode.shell": "Shell",
-  "prompt.mode.normal": "Prompt",
+  "prompt.mode.normal": "提示词",
   "prompt.mode.shell.exit": "按 esc 退出",
   "prompt.example.1": "修复代码库中的一个 TODO",
   "prompt.example.2": "这个项目的技术栈是什么？",
@@ -308,9 +308,9 @@ export const dict = {
   "prompt.toast.promptSendFailed.title": "发送提示失败",
   "prompt.toast.promptSendFailed.description": "无法获取会话",
 
-  "dialog.mcp.title": "MCPs",
+  "dialog.mcp.title": "MCP",
   "dialog.mcp.description": "已启用 {{enabled}} / {{total}}",
-  "dialog.mcp.empty": "未配置 MCPs",
+  "dialog.mcp.empty": "未配置 MCP",
 
   "dialog.lsp.empty": "已从文件类型自动检测到 LSPs",
 
@@ -397,7 +397,7 @@ export const dict = {
   "context.stats.totalCost": "总成本",
   "context.stats.sessionCreated": "创建时间",
   "context.stats.lastActivity": "最后活动",
-  "context.usage.tokens": "Token",
+  "context.usage.tokens": "Token 数",
   "context.usage.usage": "使用率",
   "context.usage.cost": "成本",
   "context.usage.clickToView": "点击查看上下文",
@@ -510,6 +510,15 @@ export const dict = {
   "home.sessions.search.sessions": "会话",
   "home.sessions.search.noResults": "未找到与 {{query}} 相关的会话",
   "home.sessions.empty": "未找到会话",
+  "home.sessions.empty.description": "为当前项目新建一个会话",
+  "home.workbench.title": "用 DevEco Code 构建你的应用",
+  "home.workbench.description": "新建对话、创建 HarmonyOS 项目，或把当前项目拆成一组清晰任务。",
+  "home.action.session.title": "新建对话",
+  "home.action.session.description": "在选中项目里打开一个干净的聊天",
+  "home.action.project.title": "新建项目",
+  "home.action.project.description": "选择目标目录后进入项目创建向导",
+  "home.action.task.title": "新建任务",
+  "home.action.task.description": "带着计划提示词开始拆分任务",
   "home.sessions.group.today": "今天",
   "home.sessions.group.yesterday": "昨天",
   "home.sessions.group.older": "更早",
@@ -622,7 +631,7 @@ export const dict = {
   "sidebar.project.viewAllSessions": "查看全部会话",
   "sidebar.project.clearNotifications": "清除通知",
 
-  "app.name.desktop": "OpenCode Desktop",
+  "app.name.desktop": "DevEco Code 桌面端",
 
   "settings.section.desktop": "桌面",
   "settings.section.server": "服务器",
@@ -650,8 +659,8 @@ export const dict = {
   "settings.general.row.theme.description": "自定义 OpenCode 的主题。",
   "settings.general.row.font.title": "代码字体",
   "settings.general.row.font.description": "自定义代码块使用的字体",
-  "settings.general.row.terminalFont.title": "Terminal Font",
-  "settings.general.row.terminalFont.description": "Customise the font used in the terminal",
+  "settings.general.row.terminalFont.title": "终端字体",
+  "settings.general.row.terminalFont.description": "自定义终端中使用的字体",
   "settings.general.row.uiFont.title": "界面字体",
   "settings.general.row.uiFont.description": "自定义整个界面使用的字体",
   "settings.general.row.followup.title": "跟进消息行为",

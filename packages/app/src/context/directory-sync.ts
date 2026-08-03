@@ -534,7 +534,7 @@ export const createDirSyncContext = (
         }
 
         if (cached !== undefined) {
-          setStore("todo", sessionID, reconcile(cached, { key: "id" }))
+          setStore("todo", sessionID, reconcile(cached))
         }
 
         const key = keyFor(directory, sessionID)
@@ -542,7 +542,7 @@ export const createDirSyncContext = (
           retry(() => client.session.todo({ sessionID })).then((todo) => {
             if (!tracked(directory, sessionID)) return
             const list = todo.data ?? []
-            setStore("todo", sessionID, reconcile(list, { key: "id" }))
+            setStore("todo", sessionID, reconcile(list))
             serverSync.todo.set(sessionID, list)
           }),
         )

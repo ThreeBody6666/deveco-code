@@ -33,6 +33,10 @@ import {
   getProjectAvatarSource,
   homeProjectDirectories,
   homeProjectNavigation,
+  homeNewProjectPrompt,
+  homeNewSessionHref,
+  homeNewTaskPrompt,
+  homeWorkbenchStats,
   type HomeProjectSelection,
   projectForSession,
   sortedRootSessions,
@@ -196,6 +200,14 @@ function HomeDesign() {
   })
   const searchOpen = createMemo(() => state.searchFocused && search().length > 0)
   const groups = createMemo(() => groupSessions(records(), language))
+  const workbenchStats = createMemo(() =>
+    homeWorkbenchStats({
+      projects: projects().length,
+      sessions: records().length,
+      selectedProject: newSessionProject() ? displayName(newSessionProject()!) : undefined,
+      healthy: global.servers.health[state.selection.server]?.healthy,
+    }),
+  )
 
   function setSelection(next: HomeProjectSelection) {
     batch(() => {
@@ -270,6 +282,19 @@ function HomeDesign() {
     openProjectNewSession(conn, project.worktree)
   }
 
+  function openNewTask() {
+    const conn = focusedServer()
+    const project = newSessionProject()
+    if (!conn || !project) return
+    openProjectNewSession(conn, project.worktree, homeNewTaskPrompt())
+  }
+
+  function createProject() {
+    const conn = focusedServer()
+    if (!conn) return
+    chooseProject(conn, homeNewProjectPrompt())
+  }
+
   function navigateOnServer(conn: ServerConnection.Any, href: string) {
     const next = homeProjectNavigation(server.key, ServerConnection.key(conn), href)
     if (!next.server) {
@@ -280,11 +305,11 @@ function HomeDesign() {
     server.setActive(next.server)
   }
 
-  function openProjectNewSession(conn: ServerConnection.Any, directory: string) {
+  function openProjectNewSession(conn: ServerConnection.Any, directory: string, prompt?: string) {
     const ctx = global.createServerCtx(conn)
     ctx.projects.open(directory)
     ctx.projects.touch(directory)
-    navigateOnServer(conn, `/${base64Encode(directory)}/session`)
+    navigateOnServer(conn, homeNewSessionHref(directory, prompt))
   }
 
   function editProject(conn: ServerConnection.Any, project: LocalProject) {
@@ -316,17 +341,24 @@ function HomeDesign() {
     navigateOnServer(conn, `/${base64Encode(session.directory)}/session/${session.id}`)
   }
 
-  function chooseProject(conn: ServerConnection.Any) {
+  function chooseProject(conn: ServerConnection.Any, prompt?: string) {
     function resolve(result: string | string[] | null) {
-      addProjects(conn, homeProjectDirectories(result))
+      const directories = homeProjectDirectories(result)
+      if (prompt) {
+        const directory = directories[0]
+        if (!directory) return
+        openProjectNewSession(conn, directory, prompt)
+        return
+      }
+      addProjects(conn, directories)
     }
 
     const server = global.createServerCtx(conn)
 
     pickDirectory({
       server: conn,
-      title: language.t("command.project.open"),
-      multiple: true,
+      title: prompt ? language.t("home.action.project.title") : language.t("command.project.open"),
+      multiple: !prompt,
       onSelect: resolve,
     })
   }
@@ -338,8 +370,8 @@ function HomeDesign() {
   }
 
   return (
-    <div class="rounded-[10px] shadow-[var(--v2-elevation-raised)] m-2 min-h-0 lg:overflow-hidden bg-v2-background-bg-base self-stretch flex-1">
-      <div class="mx-auto grid w-full h-full max-w-[1080px] gap-8 px-6 pb-16 lg:grid-cols-[280px_minmax(0,720px)]">
+    <div class="m-2 min-h-0 flex-1 self-stretch overflow-hidden rounded-[18px] border border-v2-border-border-base bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.08),transparent_34%),var(--v2-background-bg-base)] shadow-[var(--v2-elevation-raised)]">
+      <div class="mx-auto grid h-full w-full max-w-[1180px] gap-8 px-6 pb-10 lg:grid-cols-[286px_minmax(0,780px)]">
         <HomeProjectColumn
           projects={projects()}
           selected={state.selection}
@@ -365,9 +397,17 @@ function HomeDesign() {
         />
 
         <section
-          class="min-h-0 min-w-0 flex-1 flex flex-col pt-12"
+          class="min-h-0 min-w-0 flex-1 flex flex-col pt-10"
           aria-label={language.t("sidebar.project.recentSessions")}
         >
+          <HomeWorkbenchHero
+            stats={workbenchStats()}
+            hasProject={!!newSessionProject()}
+            onNewSession={openNewSession}
+            onNewTask={openNewTask}
+            onOpenProject={createProject}
+            language={language}
+          />
           <HomeSessionSearch
             value={state.search}
             placeholder={language.t("home.sessions.search.placeholder")}
@@ -386,7 +426,7 @@ function HomeDesign() {
             onSelect={selectSearchSession}
           />
           <ScrollView class="mt-3 min-h-0 flex-1">
-            <div class="pt-3 flex flex-col gap-6">
+            <div class="pt-4 flex flex-col gap-7">
               <Show
                 when={!sessionLoad.isLoading}
                 fallback={<HomeSessionSkeleton label={language.t("common.loading")} />}
@@ -394,12 +434,12 @@ function HomeDesign() {
                 <Show
                   when={groups().length > 0}
                   fallback={
-                    <div class="flex min-w-0 flex-col gap-4">
-                      <HomeSessionGroupHeader
-                        title={language.t("home.sessions.empty")}
-                        onNewSession={newSessionProject() ? openNewSession : undefined}
-                      />
-                    </div>
+                    <HomeSessionEmpty
+                      onNewSession={newSessionProject() ? openNewSession : undefined}
+                      onNewTask={newSessionProject() ? openNewTask : undefined}
+                      title={language.t("home.sessions.empty")}
+                      description={language.t("home.sessions.empty.description")}
+                    />
                   }
                 >
                   <For each={groups()}>
@@ -744,6 +784,141 @@ function HomeSessionLeading(props: {
   )
 }
 
+function HomeWorkbenchHero(props: {
+  stats: ReturnType<typeof homeWorkbenchStats>
+  hasProject: boolean
+  onNewSession: () => void
+  onNewTask: () => void
+  onOpenProject: () => void
+  language: ReturnType<typeof useLanguage>
+}) {
+  return (
+    <div class="mb-5 ml-4 mr-2 overflow-hidden rounded-[24px] border border-v2-border-border-base bg-[linear-gradient(145deg,var(--v2-background-bg-layer-01),var(--v2-background-bg-base)_58%,var(--v2-background-bg-layer-02))] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <div class="flex min-w-0 flex-col gap-5">
+        <div class="flex min-w-0 flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div class="min-w-0 flex-1">
+            <div class="mb-3 inline-flex items-center gap-2 rounded-full border border-v2-border-border-base bg-v2-background-bg-base/70 px-2.5 py-1 text-[11px] leading-none tracking-[0.08em] text-v2-text-text-muted [font-weight:620]">
+              <span class="size-1.5 rounded-full bg-v2-icon-icon-success" />
+              DevEco Code Workspace
+            </div>
+            <h1 class="max-w-[560px] text-[30px] leading-[34px] tracking-[-0.9px] text-v2-text-text-base [font-weight:650]">
+              {props.language.t("home.workbench.title")}
+            </h1>
+            <p class="mt-2 max-w-[560px] text-[13px] leading-5 tracking-[-0.04px] text-v2-text-text-muted [font-weight:440]">
+              {props.language.t("home.workbench.description")}
+            </p>
+          </div>
+          <div class="grid min-w-[220px] grid-cols-2 gap-2 rounded-[18px] border border-v2-border-border-base bg-v2-background-bg-base/55 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <For each={props.stats}>{(stat) => <HomeWorkbenchStat stat={stat} />}</For>
+          </div>
+        </div>
+        <HomeQuickActions
+          hasProject={props.hasProject}
+          onNewSession={props.onNewSession}
+          onNewTask={props.onNewTask}
+          onOpenProject={props.onOpenProject}
+          language={props.language}
+        />
+      </div>
+    </div>
+  )
+}
+
+function HomeWorkbenchStat(props: { stat: ReturnType<typeof homeWorkbenchStats>[number] }) {
+  return (
+    <div class="min-w-0 rounded-[12px] border border-v2-border-border-base bg-v2-background-bg-layer-01 px-3 py-2.5">
+      <div class="text-[10px] leading-3 tracking-[0.08em] text-v2-text-text-faint [font-weight:620]">
+        {props.stat.label}
+      </div>
+      <div
+        class="mt-1 truncate text-[13px] leading-4 tracking-[-0.04px] [font-weight:560]"
+        classList={{
+          "text-v2-text-text-base": props.stat.tone === "base",
+          "text-v2-text-text-muted": props.stat.tone === "muted",
+          "text-v2-icon-icon-success": props.stat.tone === "success",
+          "text-v2-icon-icon-warning": props.stat.tone === "warning",
+        }}
+      >
+        {props.stat.value}
+      </div>
+    </div>
+  )
+}
+
+function HomeQuickActions(props: {
+  hasProject: boolean
+  onNewSession: () => void
+  onNewTask: () => void
+  onOpenProject: () => void
+  language: ReturnType<typeof useLanguage>
+}) {
+  return (
+    <div class="grid gap-3 md:grid-cols-3">
+      <HomeQuickAction
+        action="home-create-session"
+        icon="edit"
+        title={props.language.t("home.action.session.title")}
+        description={props.language.t("home.action.session.description")}
+        disabled={!props.hasProject}
+        onClick={props.onNewSession}
+      />
+      <HomeQuickAction
+        action="home-create-project"
+        icon="folder-add-left"
+        title={props.language.t("home.action.project.title")}
+        description={props.language.t("home.action.project.description")}
+        onClick={props.onOpenProject}
+      />
+      <HomeQuickAction
+        action="home-create-task"
+        icon="grid-plus"
+        title={props.language.t("home.action.task.title")}
+        description={props.language.t("home.action.task.description")}
+        disabled={!props.hasProject}
+        onClick={props.onNewTask}
+      />
+    </div>
+  )
+}
+
+function HomeQuickAction(props: {
+  action: string
+  icon: string
+  title: string
+  description: string
+  disabled?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      data-action={props.action}
+      disabled={props.disabled}
+      class="group relative flex min-h-[116px] min-w-0 overflow-hidden rounded-[18px] border border-v2-border-border-base bg-v2-background-bg-layer-01 p-4 text-left shadow-[0_1px_0_rgba(255,255,255,0.04),0_18px_42px_rgba(0,0,0,0.10)] transition-[background-color,border-color,box-shadow,transform] duration-[160ms] ease-out before:absolute before:inset-x-4 before:top-0 before:h-px before:bg-white/10 hover:-translate-y-0.5 hover:border-v2-border-border-muted hover:bg-v2-background-bg-layer-03 hover:shadow-[0_24px_52px_rgba(0,0,0,0.16)] focus-visible:outline-none focus-visible:shadow-[0_0_0_1px_var(--v2-border-border-focus),0_24px_52px_rgba(0,0,0,0.16)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0 disabled:hover:bg-v2-background-bg-layer-01 disabled:hover:shadow-[0_1px_0_rgba(255,255,255,0.04),0_18px_42px_rgba(0,0,0,0.10)]"
+      onClick={props.onClick}
+    >
+      <span class="flex min-w-0 flex-1 flex-col justify-between gap-4">
+        <span class="flex items-center justify-between gap-2">
+          <span class="flex size-9 items-center justify-center rounded-[12px] bg-v2-background-bg-base text-v2-icon-icon-muted shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base)] transition-colors group-hover:text-v2-icon-icon-base">
+            <IconV2 name={props.icon} />
+          </span>
+          <span class="flex size-7 items-center justify-center rounded-full border border-v2-border-border-base bg-v2-background-bg-base/70 text-v2-icon-icon-faint transition-colors group-hover:text-v2-icon-icon-muted">
+            <IconV2 name="arrow-up-right" size="small" />
+          </span>
+        </span>
+        <span class="flex min-w-0 flex-col gap-1.5">
+          <span class="truncate text-[14px] leading-5 tracking-[-0.08px] text-v2-text-text-base [font-weight:620]">
+            {props.title}
+          </span>
+          <span class="line-clamp-2 text-[12px] leading-4 tracking-[-0.02px] text-v2-text-text-muted [font-weight:440]">
+            {props.description}
+          </span>
+        </span>
+      </span>
+    </button>
+  )
+}
+
 function HomeSessionSearch(props: {
   value: string
   placeholder: string
@@ -828,11 +1003,11 @@ function HomeSessionSearch(props: {
 
   return (
     <div class="ml-4 mr-2 w-[calc(100%_-_24px)]">
-      <div ref={root} data-component="home-session-search" class="relative z-10 w-full">
+      <div ref={root} data-component="home-session-search" class="relative z-10 w-full rounded-[16px] border border-v2-border-border-base bg-v2-background-bg-layer-01 p-1 shadow-[0_10px_28px_rgba(0,0,0,0.10)]">
         <Show when={props.open}>
           <div
             data-component="home-session-search-panel"
-            class="absolute flex flex-col rounded-[12px] bg-v2-background-bg-base shadow-[var(--v2-elevation-floating)]"
+            class="absolute flex flex-col rounded-[16px] border border-v2-border-border-base bg-v2-background-bg-base shadow-[var(--v2-elevation-floating)]"
             style={{
               top: "-6px",
               left: "-6px",
@@ -883,9 +1058,9 @@ function HomeSessionSearch(props: {
           </div>
         </Show>
         <label
-          class="relative z-20 flex h-9 w-full items-center gap-2 rounded-[6px] py-1 pl-3 pr-2 text-v2-icon-icon-muted transition-[background-color,box-shadow] duration-[120ms] ease-in-out"
+          class="relative z-20 flex h-11 w-full items-center gap-2 rounded-[12px] py-1 pl-3.5 pr-2.5 text-v2-icon-icon-muted transition-[background-color,box-shadow] duration-[120ms] ease-in-out"
           classList={{
-            "bg-v2-background-bg-layer-03 focus-within:bg-v2-background-bg-layer-03 focus-within:shadow-[0_0_0_0.5px_var(--v2-border-border-focus),var(--v2-elevation-raised)]":
+            "bg-v2-background-bg-base focus-within:bg-v2-background-bg-base focus-within:shadow-[0_0_0_0.5px_var(--v2-border-border-focus),0_10px_28px_rgba(0,0,0,0.10)]":
               !props.open,
             "bg-transparent shadow-[0_0_0_0.5px_var(--v2-border-border-focus)]": props.open,
           }}
@@ -1000,8 +1175,13 @@ function HomeSessionSearchResultRow(props: {
 function HomeSessionGroupHeader(props: { title: string; onNewSession?: () => void }) {
   const language = useLanguage()
   return (
-    <div class="flex h-7 min-w-0 items-center justify-between pl-4 pr-2">
-      <div class={HOME_SECTION_LABEL}>{props.title}</div>
+    <div class="flex h-8 min-w-0 items-center justify-between pl-4 pr-2">
+      <div class="flex items-center gap-2">
+        <div class="h-px w-5 bg-v2-border-border-muted" />
+        <div class="text-[11px] leading-4 tracking-[0.12em] text-v2-text-text-muted [font-weight:650]">
+          {props.title}
+        </div>
+      </div>
       <Show when={props.onNewSession}>
         {(onNewSession) => (
           <ButtonV2
@@ -1020,6 +1200,44 @@ function HomeSessionGroupHeader(props: { title: string; onNewSession?: () => voi
   )
 }
 
+function HomeSessionEmpty(props: {
+  title: string
+  description: string
+  onNewSession?: () => void
+  onNewTask?: () => void
+}) {
+  const language = useLanguage()
+  return (
+    <div class="mx-4 flex min-h-[300px] min-w-0 flex-col items-center justify-center rounded-[24px] border border-dashed border-v2-border-border-muted bg-[linear-gradient(180deg,var(--v2-background-bg-layer-01),var(--v2-background-bg-base))] px-8 py-12 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_18px_46px_rgba(0,0,0,0.10)]">
+      <div class="flex size-14 items-center justify-center rounded-[18px] bg-v2-background-bg-base text-v2-icon-icon-muted shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base),0_12px_30px_rgba(0,0,0,0.12)]">
+        <IconV2 name="edit" size="large" />
+      </div>
+      <div class="mt-5 max-w-[420px] text-[17px] leading-6 tracking-[-0.16px] text-v2-text-text-base [font-weight:650]">
+        {props.title}
+      </div>
+      <div class="mt-2 max-w-[420px] text-[13px] leading-5 tracking-[-0.04px] text-v2-text-text-muted [font-weight:440]">
+        {props.description}
+      </div>
+      <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
+        <Show when={props.onNewSession}>
+          {(onNewSession) => (
+            <ButtonV2 data-action="home-empty-new-session" icon="edit" onClick={onNewSession()}>
+              {language.t("command.session.new")}
+            </ButtonV2>
+          )}
+        </Show>
+        <Show when={props.onNewTask}>
+          {(onNewTask) => (
+            <ButtonV2 data-action="home-empty-new-task" variant="ghost" icon="grid-plus" onClick={onNewTask()}>
+              {language.t("home.action.task.title")}
+            </ButtonV2>
+          )}
+        </Show>
+      </div>
+    </div>
+  )
+}
+
 function HomeSessionRow(props: {
   record: HomeSessionRecord
   server: ServerConnection.Key
@@ -1032,7 +1250,7 @@ function HomeSessionRow(props: {
     <button
       type="button"
       data-component="home-session-row"
-      class={`${HOME_ROW} h-10 gap-2 px-6 py-3 pl-4`}
+      class={`${HOME_ROW} group h-12 gap-2 border border-transparent px-4 py-3 hover:border-v2-border-border-base hover:bg-v2-background-bg-layer-01 hover:shadow-[0_10px_30px_rgba(0,0,0,0.10)]`}
       onClick={() => props.openSession(props.record.session)}
     >
       <HomeSessionLeading

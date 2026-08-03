@@ -9,12 +9,15 @@ import { Mark } from "@opencode-ai/ui/logo"
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCenter } from "@thisbeyond/solid-dnd"
 import type { DragEvent } from "@thisbeyond/solid-dnd"
 import type { SnapshotFileDiff, VcsFileDiff } from "@opencode-ai/sdk/v2"
+import type { Todo } from "@opencode-ai/sdk/v2"
 import { ConstrainDragYAxis, getDraggableId } from "@/utils/solid-dnd"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 
 import FileTree from "@/components/file-tree"
 import { SessionContextUsage } from "@/components/session-context-usage"
 import { SessionContextTab, SortableTab, FileVisual } from "@/components/session"
+import { SessionTodoTab } from "@/pages/session/session-todo-tab"
+import { SessionSummaryTab } from "@/pages/session/session-summary-tab"
 import { useCommand } from "@/context/command"
 import { useFile, type SelectedLineRange } from "@/context/file"
 import { useLanguage } from "@/context/language"
@@ -52,6 +55,7 @@ export function SessionSidePanel(props: {
   focusReviewDiff: (path: string) => void
   reviewSnap: boolean
   size: Sizing
+  todos?: () => Todo[]
 }) {
   const layout = useLayout()
   const settings = useSettings()
@@ -152,9 +156,15 @@ export function SessionSidePanel(props: {
     hasReview: props.canReview,
   })
   const contextOpen = tabState.contextOpen
+  const todoOpen = tabState.todoOpen
   const openedTabs = tabState.openedTabs
   const activeTab = tabState.activeTab
   const activeFileTab = tabState.activeFileTab
+
+  const hasTodos = createMemo(() => (props.todos ? props.todos().length > 0 : false))
+  const todosDone = createMemo(() =>
+    props.todos ? props.todos().filter((t) => t.status === "completed").length : 0,
+  )
 
   const fileTreeTab = () => layout.fileTree.tab()
 
@@ -272,31 +282,19 @@ export function SessionSidePanel(props: {
                             </div>
                           </Tabs.Trigger>
                         </Show>
-                        <Show when={contextOpen()}>
+                        <Show when={reviewTab() && props.canReview()}>
                           <Tabs.Trigger
                             value="context"
-                            closeButton={
-                              <TooltipKeybind
-                                title={language.t("common.closeTab")}
-                                keybind={command.keybind("tab.close")}
-                                placement="bottom"
-                                gutter={10}
-                              >
-                                <IconButton
-                                  icon="close-small"
-                                  variant="ghost"
-                                  class="h-5 w-5"
-                                  onClick={() => tabs().close("context")}
-                                  aria-label={language.t("common.closeTab")}
-                                />
-                              </TooltipKeybind>
-                            }
                             hideCloseButton
-                            onMiddleClick={() => tabs().close("context")}
                           >
                             <div class="flex items-center gap-2">
                               <SessionContextUsage variant="indicator" />
-                              <div>{language.t("session.tab.context")}</div>
+                              <div>任务摘要</div>
+                              <Show when={props.todos && props.todos().length > 0}>
+                                <span class="text-[10px] font-mono tabular-nums leading-4 px-1.5 py-px rounded-md bg-[var(--v2-overlay-simple-overlay-hover)] text-v2-text-text-faint">
+                                  {todosDone()}/{props.todos!().length}
+                                </span>
+                              </Show>
                             </div>
                           </Tabs.Trigger>
                         </Show>
@@ -345,11 +343,11 @@ export function SessionSidePanel(props: {
                       </Show>
                     </Tabs.Content>
 
-                    <Show when={contextOpen()}>
+                    <Show when={reviewTab() && props.canReview()}>
                       <Tabs.Content value="context" class="flex flex-col h-full overflow-hidden contain-strict">
                         <Show when={activeTab() === "context"}>
-                          <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
-                            <SessionContextTab />
+                          <div class="relative flex-1 min-h-0 overflow-hidden">
+                            <SessionSummaryTab todos={props.todos} />
                           </div>
                         </Show>
                       </Tabs.Content>
@@ -458,7 +456,7 @@ export function SessionSidePanel(props: {
                       edge="start"
                       size={layout.fileTree.width()}
                       min={200}
-                      max={480}
+                      max={800}
                       onResize={(width) => {
                         props.size.touch()
                         layout.fileTree.resize(width)

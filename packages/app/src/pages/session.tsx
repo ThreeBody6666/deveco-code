@@ -1698,7 +1698,7 @@ export default function Page() {
                 direction="horizontal"
                 size={layout.session.width()}
                 min={450}
-                max={typeof window === "undefined" ? 1000 : window.innerWidth * 0.45}
+                max={typeof window === "undefined" ? 1000 : Math.max(900, window.innerWidth * 0.75)}
                 onResize={(width) => {
                   size.touch()
                   layout.session.resize(width)
@@ -1720,6 +1720,7 @@ export default function Page() {
           focusReviewDiff={focusReviewDiff}
           reviewSnap={ui.reviewSnap}
           size={size}
+          todos={composer.todos}
         />
       </div>
 

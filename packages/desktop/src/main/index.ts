@@ -26,6 +26,7 @@ import {
   spawnLocalServer,
   type SidecarListener,
 } from "./server"
+import { createRemoteBridge, type BridgeController, type BridgeInfo } from "./remote-bridge"
 import { setupAutoUpdater, showUpdaterDialog } from "./updater"
 import {
   createMainWindow,
@@ -38,10 +39,14 @@ import { createWslServersController } from "./wsl/servers"
 import { registerWslIpcHandlers } from "./wsl/ipc"
 import { spawnWslSidecar } from "./wsl/sidecar"
 import { migrate } from "./migrate"
+import { createEnvDoctorController, createDefaultEnvDoctorDeps } from "./env-doctor"
+import { registerEnvDoctorIpc } from "./env-doctor/ipc"
+import { getStore } from "./store"
+import { SETTINGS_STORE, ENV_DOCTOR_STUDIO_PATH_KEY } from "./store-keys"
 
 const APP_NAMES: Record<string, string> = {
-  dev: "OpenCode Dev",
-  beta: "OpenCode Beta",
+  dev: "DevEco Code",
+  beta: "DevEco Code",
   prod: "DevEco Code",
 }
 const APP_IDS: Record<string, string> = {
@@ -55,6 +60,8 @@ const jsCallStackFeature = "DocumentPolicyIncludeJSCallStacksInCrashReports"
 let logger: ReturnType<typeof initLogging>
 let mainWindow: BrowserWindow | null = null
 let server: SidecarListener | null = null
+let sidecarReady: ServerReadyData | null = null
+let remoteBridge: BridgeController | null = null
 
 const pendingDeepLinks: string[] = []
 
@@ -153,6 +160,14 @@ const main = Effect.gen(function* () {
   )
   const stopSidecars = async () => {
     await killSidecar()
+    if (remoteBridge) {
+      try {
+        await remoteBridge.stop()
+      } catch (error) {
+        logger.warn("remote-bridge stop failed", { error: String(error) })
+      }
+      remoteBridge = null
+    }
     wslServers.stopAll()
   }
   const relaunch = () => {
@@ -266,8 +281,30 @@ const main = Effect.gen(function* () {
     setBackgroundColor: (color) => setBackgroundColor(color),
     exportDebugLogs: () => exportDebugLogs(),
     recordFatalRendererError: (error) => writeLog("renderer", "fatal renderer error", { ...error }, "error"),
+    getRemoteBridgeInfo: () => remoteBridge?.info() ?? null,
+    regenerateRemoteBridgeCode: () => remoteBridge?.regeneratePairCode() ?? null,
   })
   registerWslIpcHandlers(wslServers)
+
+  const envDoctor = createEnvDoctorController(
+    createDefaultEnvDoctorDeps({
+      selfVersion: () => app.getVersion(),
+      readCustomStudioPath: async () => {
+        try {
+          const v = getStore(SETTINGS_STORE).get(ENV_DOCTOR_STUDIO_PATH_KEY)
+          return typeof v === "string" && v.length > 0 ? v : undefined
+        } catch {
+          return undefined
+        }
+      },
+      writeCustomStudioPath: async (path) => {
+        const store = getStore(SETTINGS_STORE)
+        if (!path) store.delete(ENV_DOCTOR_STUDIO_PATH_KEY)
+        else store.set(ENV_DOCTOR_STUDIO_PATH_KEY, path)
+      },
+    }),
+  )
+  registerEnvDoctorIpc(envDoctor)
   void updater.start()
   const updateTimer = setInterval(() => void updater.check(), 10 * 60 * 1000)
   updateTimer.unref()
@@ -323,11 +360,25 @@ const main = Effect.gen(function* () {
       }),
     )
     server = listener
+    sidecarReady = { url, username: "opencode", password }
     yield* Deferred.succeed(serverReady, {
       url,
       username: "opencode",
       password,
     })
+
+    try {
+      remoteBridge = yield* Effect.promise(() =>
+        createRemoteBridge({
+          getSidecar: () => sidecarReady,
+          log: (message, meta) => logger.log(message, meta),
+          warn: (message, meta) => logger.warn(message, meta),
+        }),
+      )
+      logger.log("remote-bridge ready", remoteBridge.info() as unknown as Record<string, unknown>)
+    } catch (error) {
+      logger.warn("failed to start remote-bridge", { error: String(error) })
+    }
 
     if (process.platform === "win32") {
       void wslServers.initialize().catch((error) => logger.error("wsl server initialization failed", error))

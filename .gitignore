@@ -28,6 +28,12 @@ target
 .direnv/
 .sisyphus/
 
+# Local dev / build artifacts
+.codegraph/
+.trae/
+packages/desktop/dist-exe/
+packages/desktop/dist-deveco-preview/
+
 # Local dev files
 opencode-dev
 UPCOMING_CHANGELOG.md

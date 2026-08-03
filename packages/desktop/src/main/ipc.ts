@@ -37,6 +37,8 @@ type Deps = {
   setBackgroundColor: (color: string) => void
   exportDebugLogs: () => Promise<string>
   recordFatalRendererError: (error: FatalRendererError) => Promise<void> | void
+  getRemoteBridgeInfo: () => unknown
+  regenerateRemoteBridgeCode: () => unknown
 }
 
 export function registerIpcHandlers(deps: Deps) {
@@ -76,6 +78,8 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("record-fatal-renderer-error", (_event: IpcMainInvokeEvent, error: FatalRendererError) =>
     deps.recordFatalRendererError(error),
   )
+  ipcMain.handle("remote-bridge-info", () => deps.getRemoteBridgeInfo())
+  ipcMain.handle("remote-bridge-regenerate", () => deps.regenerateRemoteBridgeCode())
   ipcMain.handle("store-get", (_event: IpcMainInvokeEvent, name: string, key: string) => {
     try {
       const store = getStore(name)

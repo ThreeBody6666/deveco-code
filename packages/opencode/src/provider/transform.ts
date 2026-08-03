@@ -396,6 +396,11 @@ function unsupportedParts(msgs: ModelMessage[], model: Provider.Model): ModelMes
       const filename = part.type === "file" ? part.filename : undefined
       const modality = mimeToModality(mime)
       if (!modality) return part
+      // 图片始终放行 —— DevEco 服务端返回的 input_modalities 元数据不完整，
+      // 很多实际支持视觉的模型（如 ark-code-latest、doubao vision）没被正确声明为 image capable。
+      // 由 LLM 侧自行判断能否理解，避免误报。pdf/audio/video 仍按能力过滤，因为这些
+      // 真的传给不支持的模型会导致 API 报错。
+      if (modality === "image") return part
       if (model.capabilities.input[modality]) return part
 
       const name = filename ? `"${filename}"` : modality

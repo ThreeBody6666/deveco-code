@@ -954,7 +954,7 @@ function DraftTabItem(props: {
           }}
           onClick={closeTab}
           icon={<IconV2 name="xmark-small" />}
-          aria-label="Close tab"
+          aria-label="关闭标签页"
         />
       </div>
     </div>
@@ -996,7 +996,7 @@ function NewSessionTabItem(props: { ref?: HTMLDivElement; href: string; title: s
           }}
           onClick={closeTab}
           icon={<IconV2 name="xmark-small" />}
-          aria-label="Close tab"
+          aria-label="关闭标签页"
         />
       </div>
     </div>

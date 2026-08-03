@@ -198,7 +198,7 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
       )
       return
     }
-    setGlobalStore("session_todo", sessionID, reconcile(todos, { key: "id" }))
+    setGlobalStore("session_todo", sessionID, reconcile(todos))
   }
 
   const paused = () => untrack(() => globalStore.reload) !== undefined

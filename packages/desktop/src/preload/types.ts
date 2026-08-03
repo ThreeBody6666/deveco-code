@@ -40,12 +40,57 @@ export type FatalRendererError = {
   os?: string
 }
 
+export type RemoteBridgeInfo = {
+  port: number
+  hostnames: string[]
+  pairCode: string
+  pairCodeExpiresAt: number
+  pairUrls: string[]
+}
+
+export type EnvDoctorComponentId = "deveco-code" | "deveco-studio" | "deveco-cli" | "node"
+export type EnvDoctorItemStatus = "ok" | "missing" | "outdated" | "unknown"
+export type EnvDoctorItem = {
+  id: EnvDoctorComponentId
+  status: EnvDoctorItemStatus
+  version?: string
+  path?: string
+  detail?: string
+}
+export type EnvDoctorSummary = {
+  healthy: boolean
+  missing: EnvDoctorItem[]
+}
+export type EnvDoctorReport = {
+  items: EnvDoctorItem[]
+  summary: EnvDoctorSummary
+  generatedAt: string
+}
+export type EnvDoctorInstallGuide = {
+  url: string
+  description: string
+}
+export type EnvDoctorComponentInfo = {
+  id: EnvDoctorComponentId
+  label: string
+  required: boolean
+}
+export type EnvDoctorAPI = {
+  scan: () => Promise<EnvDoctorReport>
+  setStudioPath: (path: string) => Promise<EnvDoctorReport>
+  clearStudioPath: () => Promise<EnvDoctorReport>
+  installGuide: (id: EnvDoctorComponentId) => Promise<EnvDoctorInstallGuide>
+  openInstall: (id: EnvDoctorComponentId) => Promise<EnvDoctorInstallGuide>
+  components: () => Promise<EnvDoctorComponentInfo[]>
+}
+
 export type ElectronAPI = {
   killSidecar: () => Promise<void>
   installCli: () => Promise<string>
   awaitInitialization: () => Promise<ServerReadyData>
   wslServers: WslServersAPI
   updater: UpdaterAPI
+  envDoctor: EnvDoctorAPI
   consumeInitialDeepLinks: () => Promise<string[]>
   getDefaultServerUrl: () => Promise<string | null>
   setDefaultServerUrl: (url: string | null) => Promise<void>
@@ -99,4 +144,6 @@ export type ElectronAPI = {
   setBackgroundColor: (color: string) => Promise<void>
   exportDebugLogs: () => Promise<string>
   recordFatalRendererError: (error: FatalRendererError) => Promise<void>
+  remoteBridgeInfo: () => Promise<RemoteBridgeInfo | null>
+  remoteBridgeRegenerate: () => Promise<RemoteBridgeInfo | null>
 }

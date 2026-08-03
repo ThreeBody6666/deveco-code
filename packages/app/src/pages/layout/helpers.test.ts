@@ -16,7 +16,12 @@ import {
   hasProjectPermissions,
   homeProjectNavigation,
   homeProjectDirectories,
+  homeNewProjectPrompt,
+  homeNewSessionHref,
+  homeNewTaskPrompt,
   homeSessionServerStatus,
+  homeWorkbenchStats,
+  homeWorkbenchStatusLabel,
   latestRootSession,
   toggleHomeProjectSelection,
 } from "./helpers"
@@ -271,6 +276,29 @@ describe("layout workspace helpers", () => {
     ).toEqual({ server: serverKey("https://debian.example") })
   })
 
+  test("builds a new-session href for a directory", () => {
+    expect(homeNewSessionHref("/repo/demo")).toBe("/L3JlcG8vZGVtbw/session")
+  })
+
+  test("builds a new-project href with a seeded creation prompt", () => {
+    const href = homeNewSessionHref("/workspace", homeNewProjectPrompt())
+    expect(href.startsWith("/L3dvcmtzcGFjZQ/session?prompt=")).toBe(true)
+    const prompt = decodeURIComponent(href.split("?prompt=")[1] ?? "")
+    expect(prompt).toContain("deveco-create-project")
+    expect(prompt).toContain("deveco create")
+    expect(prompt).toContain("实际创建")
+  })
+
+  test("builds a new-task href with a seeded planning prompt", () => {
+    expect(homeNewSessionHref("/repo/demo", homeNewTaskPrompt())).toBe(
+      "/L3JlcG8vZGVtbw/session?prompt=%E8%AF%B7%E5%85%88%E5%B8%AE%E6%88%91%E4%B8%BA%E8%BF%99%E4%B8%AA%E9%A1%B9%E7%9B%AE%E6%96%B0%E5%BB%BA%E4%B8%80%E4%B8%AA%E4%BB%BB%E5%8A%A1%E8%AE%A1%E5%88%92%EF%BC%8C%E6%8B%86%E5%88%86%E7%9B%AE%E6%A0%87%E3%80%81%E6%AD%A5%E9%AA%A4%E5%92%8C%E9%AA%8C%E8%AF%81%E6%96%B9%E5%BC%8F%E3%80%82",
+    )
+  })
+
+  test("omits prompt query for an empty seeded prompt", () => {
+    expect(homeNewSessionHref("/repo/demo", "  ")).toBe("/L3JlcG8vZGVtbw/session")
+  })
+
   test("defers home project navigation until its server is active", () => {
     expect(
       homeProjectNavigation(serverKey("sidecar"), serverKey("https://debian.example"), "/YW1hem9u/session"),
@@ -293,6 +321,43 @@ describe("layout workspace helpers", () => {
     expect(homeProjectDirectories(["/first", "/second"])).toEqual(["/first", "/second"])
     expect(homeProjectDirectories("/only")).toEqual(["/only"])
     expect(homeProjectDirectories(null)).toEqual([])
+  })
+
+  test("summarizes the home workbench for a focused project", () => {
+    expect(
+      homeWorkbenchStats({
+        projects: 4,
+        sessions: 12,
+        selectedProject: "entry",
+        healthy: true,
+      }),
+    ).toEqual([
+      { id: "project", label: "当前项目", value: "entry", tone: "base" },
+      { id: "sessions", label: "会话", value: "12", tone: "base" },
+      { id: "projects", label: "项目", value: "4", tone: "base" },
+      { id: "status", label: "服务", value: "已连接", tone: "success" },
+    ])
+  })
+
+  test("summarizes the home workbench without a selected project", () => {
+    expect(
+      homeWorkbenchStats({
+        projects: 0,
+        sessions: 0,
+        healthy: false,
+      }),
+    ).toEqual([
+      { id: "project", label: "当前项目", value: "未选择", tone: "muted" },
+      { id: "sessions", label: "会话", value: "0", tone: "base" },
+      { id: "projects", label: "项目", value: "0", tone: "base" },
+      { id: "status", label: "服务", value: "未连接", tone: "warning" },
+    ])
+  })
+
+  test("formats workbench status label", () => {
+    expect(homeWorkbenchStatusLabel(true)).toBe("已连接")
+    expect(homeWorkbenchStatusLabel(false)).toBe("未连接")
+    expect(homeWorkbenchStatusLabel(undefined)).toBe("连接中")
   })
 
   test("hides status derived from an inactive server", () => {

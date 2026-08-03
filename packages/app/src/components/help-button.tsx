@@ -18,7 +18,7 @@ export function HelpButton() {
           triggerAs="button"
           triggerProps={{
             type: "button",
-            "aria-label": "Help",
+            "aria-label": "帮助",
             class:
               "size-7 rounded-full bg-background-base shadow-[var(--shadow-lg-border-base)] flex items-center justify-center text-text-base hover:text-text-strong transition-colors",
           }}
@@ -31,7 +31,7 @@ export function HelpButton() {
             <div class="relative flex flex-col gap-1 w-[320px] p-4 rounded-xl bg-background-strong shadow-[var(--shadow-lg-border-base)]">
               <button
                 type="button"
-                aria-label="Close"
+                aria-label="关闭"
                 class="absolute top-3.5 right-3.5 size-6 rounded-md flex items-center justify-center text-text-base hover:text-text-strong hover:bg-surface-raised-base-hover transition-colors"
                 onClick={() => {
                   setShown(false)
@@ -40,10 +40,9 @@ export function HelpButton() {
               >
                 <Icon name="xmark-small" />
               </button>
-              <span class="text-14-regular text-text-strong">Lorem ipsum dolor sit amet</span>
+              <span class="text-14-regular text-text-strong">需要帮助？</span>
               <p class="text-12-regular text-text-weak">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et
-                dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.
+                这里会显示 DevEco Code 桌面端的使用提示和常见问题入口。
               </p>
             </div>
           </Show>

@@ -2417,7 +2417,7 @@ export default function Layout(props: ParentProps) {
                     direction="horizontal"
                     size={layout.sidebar.width()}
                     min={244}
-                    max={typeof window === "undefined" ? 1000 : window.innerWidth * 0.3 + 64}
+                    max={typeof window === "undefined" ? 1000 : Math.max(800, window.innerWidth * 0.6)}
                     onResize={(w) => {
                       setState("sizing", true)
                       if (sizet !== undefined) clearTimeout(sizet)

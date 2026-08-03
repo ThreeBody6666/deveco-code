@@ -57,6 +57,14 @@ const api: ElectronAPI = {
     check: () => ipcRenderer.invoke("updater-check"),
     install: () => ipcRenderer.invoke("updater-install"),
   },
+  envDoctor: {
+    scan: () => ipcRenderer.invoke("env-doctor-scan"),
+    setStudioPath: (path) => ipcRenderer.invoke("env-doctor-set-studio-path", path),
+    clearStudioPath: () => ipcRenderer.invoke("env-doctor-clear-studio-path"),
+    installGuide: (id) => ipcRenderer.invoke("env-doctor-install-guide", id),
+    openInstall: (id) => ipcRenderer.invoke("env-doctor-open-install", id),
+    components: () => ipcRenderer.invoke("env-doctor-components"),
+  },
   consumeInitialDeepLinks: () => ipcRenderer.invoke("consume-initial-deep-links"),
   getDefaultServerUrl: () => ipcRenderer.invoke("get-default-server-url"),
   setDefaultServerUrl: (url) => ipcRenderer.invoke("set-default-server-url", url),
@@ -117,6 +125,8 @@ const api: ElectronAPI = {
   setBackgroundColor: (color: string) => ipcRenderer.invoke("set-background-color", color),
   exportDebugLogs: () => ipcRenderer.invoke("export-debug-logs"),
   recordFatalRendererError: (error) => ipcRenderer.invoke("record-fatal-renderer-error", error),
+  remoteBridgeInfo: () => ipcRenderer.invoke("remote-bridge-info"),
+  remoteBridgeRegenerate: () => ipcRenderer.invoke("remote-bridge-regenerate"),
 }
 
 contextBridge.exposeInMainWorld("api", api)

@@ -178,6 +178,14 @@ export function createMainWindow() {
     win.show()
   })
 
+  if (process.env.ELECTRON_RENDERER_URL) {
+    setTimeout(() => {
+      if (win.isDestroyed() || win.isVisible()) return
+      win.show()
+      win.focus()
+    }, 5_000).unref()
+  }
+
   return win
 }
 

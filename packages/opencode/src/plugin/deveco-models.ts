@@ -20,11 +20,12 @@ function makeModel(modelId: string, opts: {
   inputModalities?: Array<"text" | "audio" | "image" | "video" | "pdf">
 }): ModelsDev.Model {
   const inputMods = opts.inputModalities ?? ["text"]
+  const supportsImage = inputMods.includes("image")
   return {
     id: modelId,
     name: modelId,
     release_date: "",
-    attachment: false,
+    attachment: supportsImage,
     reasoning: opts.reasoning ?? false,
     temperature: false,
     tool_call: opts.toolcall ?? true,
@@ -124,10 +125,14 @@ function parseOutputLimit(output: string | number | undefined): number | undefin
 }
 
 function mapModelConfigToInternal(config: Schema.Schema.Type<typeof ModelConfigSchema>): ModelsDev.Model {
-  const inputMods =
+  const declared =
     config.input_modalities && config.input_modalities.length > 0
       ? [...config.input_modalities]
       : ["text"]
+  // 服务端 modelConfig 里 input_modalities 不完整，很多模型（如 ark-code-latest）实际支持
+  // 图片但接口只声明了 text，导致 transform.ts 的 unsupportedParts 把图片替换成 error。
+  // 这里默认把 image 附加进去，保留 pdf/audio/video 的严格判断（这些真的会导致 API 报错）。
+  const inputMods = declared.includes("image") ? declared : [...declared, "image"]
   return makeModel(config.model_id, {
     reasoning: config.thinking_mode === "on",
     toolcall: config.tool_call_mode === "tool_calls",

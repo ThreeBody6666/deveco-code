@@ -99,7 +99,6 @@ function init() {
               <Kobalte.Overlay
                 data-component="dialog-overlay"
                 style={{ "z-index": String(zIndex) }}
-                onClick={() => close(id)}
               />
               <div
                 data-dialog-layer={layer}

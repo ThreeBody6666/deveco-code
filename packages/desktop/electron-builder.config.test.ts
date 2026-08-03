@@ -10,15 +10,31 @@ const channels = [
 ] as const
 
 for (const channel of channels) {
+  test(`uses DevEco Code product name for ${channel.channel}`, async () => {
+    const previous = process.env.DEVECO_CHANNEL
+    process.env.DEVECO_CHANNEL = channel.channel
+
+    const module = await import(`./electron-builder.config.ts?product=${channel.channel}`)
+    const config = module.default as Configuration
+
+    if (previous === undefined) delete process.env.DEVECO_CHANNEL
+    else process.env.DEVECO_CHANNEL = previous
+
+    expect(config.productName).toBe("DevEco Code")
+    expect(config.protocols).toEqual({ name: "DevEco Code", schemes: ["opencode"] })
+  })
+}
+
+for (const channel of channels) {
   test(`uses one Linux desktop identity for ${channel.channel}`, async () => {
-    const previous = process.env.OPENCODE_CHANNEL
-    process.env.OPENCODE_CHANNEL = channel.channel
+    const previous = process.env.DEVECO_CHANNEL
+    process.env.DEVECO_CHANNEL = channel.channel
 
     const module = await import(`./electron-builder.config.ts?channel=${channel.channel}`)
     const config = module.default as Configuration
 
-    if (previous === undefined) delete process.env.OPENCODE_CHANNEL
-    else process.env.OPENCODE_CHANNEL = previous
+    if (previous === undefined) delete process.env.DEVECO_CHANNEL
+    else process.env.DEVECO_CHANNEL = previous
 
     expect(config.appId).toBe(channel.appId)
     expect(config.extraMetadata?.desktopName).toBe(`${channel.appId}.desktop`)
@@ -28,17 +44,21 @@ for (const channel of channels) {
 }
 
 test("keeps a hidden prod launcher for old Linux pins", async () => {
-  const previous = process.env.OPENCODE_CHANNEL
-  process.env.OPENCODE_CHANNEL = "prod"
+  const previous = process.env.DEVECO_CHANNEL
+  process.env.DEVECO_CHANNEL = "prod"
 
   const module = await import("./electron-builder.config.ts?compat=prod")
   const config = module.default as Configuration
 
-  if (previous === undefined) delete process.env.OPENCODE_CHANNEL
-  else process.env.OPENCODE_CHANNEL = previous
+  if (previous === undefined) delete process.env.DEVECO_CHANNEL
+  else process.env.DEVECO_CHANNEL = previous
 
-  expect(config.deb?.fpm?.[0]).toEndWith(`${legacyDesktopEntry}=/usr/share/applications/opencode-desktop.desktop`)
-  expect(config.rpm?.fpm?.[0]).toEndWith(`${legacyDesktopEntry}=/usr/share/applications/opencode-desktop.desktop`)
+  expect(config.deb?.fpm?.[0]?.replaceAll("\\", "/")).toEndWith(
+    `${legacyDesktopEntry}=/usr/share/applications/opencode-desktop.desktop`,
+  )
+  expect(config.rpm?.fpm?.[0]?.replaceAll("\\", "/")).toEndWith(
+    `${legacyDesktopEntry}=/usr/share/applications/opencode-desktop.desktop`,
+  )
 
   const desktop = await Bun.file(legacyDesktopEntry).text()
   expect(desktop).toContain("Exec=/opt/OpenCode/ai.opencode.desktop %U")

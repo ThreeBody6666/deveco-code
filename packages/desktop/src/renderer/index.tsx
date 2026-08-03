@@ -28,6 +28,8 @@ import { availableStartupServer, readyWslConnections } from "./wsl/connections"
 import "./styles.css"
 import { Splash } from "@opencode-ai/ui/logo"
 import { useTheme } from "@opencode-ai/ui/theme/context"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { DialogEnvDoctor } from "@opencode-ai/app/components/env-doctor"
 
 const root = document.getElementById("root")
 if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
@@ -317,6 +319,19 @@ render(() => {
     menuTrigger = (id) => cmd.trigger(id)
 
     const theme = useTheme()
+    const dialog = useDialog()
+
+    const openEnvDoctor = () => {
+      dialog.show(() => <DialogEnvDoctor />)
+    }
+
+    onMount(async () => {
+      const shown = await window.api.storeGet("opencode.settings", "envDoctorInitialShown").catch(() => null)
+      if (!shown) {
+        openEnvDoctor()
+        await window.api.storeSet("opencode.settings", "envDoctorInitialShown", "1").catch(() => undefined)
+      }
+    })
 
     createEffect(() => {
       theme.themeId()

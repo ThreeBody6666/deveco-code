@@ -139,9 +139,9 @@ export function loadLocaleDict(locale: Locale) {
 }
 
 const localeMatchers: Array<{ locale: Locale; match: (language: string) => boolean }> = [
-  { locale: "en", match: (language) => language.startsWith("en") },
   { locale: "zht", match: (language) => language.startsWith("zh") && language.includes("hant") },
   { locale: "zh", match: (language) => language.startsWith("zh") },
+  { locale: "en", match: (language) => language.startsWith("en") },
   { locale: "ko", match: (language) => language.startsWith("ko") },
   { locale: "de", match: (language) => language.startsWith("de") },
   { locale: "es", match: (language) => language.startsWith("es") },
@@ -162,22 +162,21 @@ const localeMatchers: Array<{ locale: Locale; match: (language: string) => boole
   { locale: "tr", match: (language) => language.startsWith("tr") },
 ]
 
-function detectLocale(): Locale {
-  if (typeof navigator !== "object") return "en"
+export function detectLocale(input?: readonly string[]): Locale {
+  const languages = input ?? (typeof navigator === "object" ? (navigator.languages?.length ? navigator.languages : [navigator.language]) : [])
 
-  const languages = navigator.languages?.length ? navigator.languages : [navigator.language]
   for (const language of languages) {
     if (!language) continue
     const normalized = language.toLowerCase()
     const match = localeMatchers.find((entry) => entry.match(normalized))
-    if (match) return match.locale
+    if (match?.locale === "zh" || match?.locale === "zht") return match.locale
   }
 
-  return "en"
+  return "zh"
 }
 
 export function normalizeLocale(value: string): Locale {
-  return LOCALES.includes(value as Locale) ? (value as Locale) : "en"
+  return LOCALES.includes(value as Locale) ? (value as Locale) : "zh"
 }
 
 function readStoredLocale() {
