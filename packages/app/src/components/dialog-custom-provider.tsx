@@ -135,6 +135,7 @@ export function DialogCustomProvider(props: Props) {
         provider: { [result.providerID]: result.config },
         disabled_providers: nextDisabled,
       })
+      await serverSDK().client.global.dispose()
       return result
     },
     onSuccess: (result) => {
