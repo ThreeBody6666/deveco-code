@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>DevEco Code 宣传图预览 · 增强版专场</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  background: #0a0a0a;
+  color: #eee;
+  font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  margin: 0;
+  padding: 24px;
+}
+header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #2a2a2a;
+}
+h1 { margin: 0 0 8px; font-size: 26px; }
+h1 .badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #ff3b30, #ff6b6b);
+  color: white;
+  font-size: 14px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+header p { margin: 0; color: #888; font-size: 13px; }
+.toolbar {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 16px 0 8px;
+  flex-wrap: wrap;
+}
+button {
+  background: #1c1c1c;
+  color: #eee;
+  border: 1px solid #333;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all .15s;
+}
+button:hover { background: #2a2a2a; border-color: #444; }
+button.active {
+  background: linear-gradient(135deg, #0a84ff, #00d4ff);
+  border-color: transparent;
+  color: white;
+  font-weight: 600;
+}
+.section-title {
+  margin: 32px 0 16px;
+  padding-left: 4px;
+  font-size: 18px;
+  border-left: 3px solid #0a84ff;
+  padding-left: 12px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+.card {
+  background: #161616;
+  border: 1px solid #222;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: transform .15s ease, border-color .15s;
+}
+.card:hover {
+  transform: translateY(-2px);
+  border-color: #0a84ff;
+}
+.card img {
+  width: 100%;
+  display: block;
+  cursor: zoom-in;
+  background: #000;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+}
+.card.portrait img { aspect-ratio: 4/3; }
+.card.square img { aspect-ratio: 1/1; }
+.card .meta {
+  padding: 10px 14px;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.card .num {
+  color: #0a84ff;
+  font-weight: 700;
+  font-family: "JetBrains Mono", "Consolas", monospace;
+}
+.card .desc { color: #bbb; text-align: right; }
+.card .tag {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  background: #2a2a2a;
+  color: #888;
+}
+.card .tag.must { background: #ff3b30; color: white; }
+
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.95);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+  cursor: zoom-out;
+}
+.modal.show { display: flex; }
+.modal img {
+  max-width: 95vw;
+  max-height: 95vh;
+  border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.6);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>DevEco Code <span class="badge">个人增强版</span> 宣传图集</h1>
+  <p>共 60 张 · 30 张通用 + 30 张增强版专场 · 点击图片可放大 · 2026-08-03</p>
+</header>
+
+<div class="toolbar">
+  <button class="active" data-filter="all">全部 60</button>
+  <button data-filter="enh">增强版专场 30</button>
+  <button data-filter="gen">通用 30</button>
+  <button data-filter="hero">主视觉</button>
+  <button data-filter="social">社交平台</button>
+  <button data-filter="feature">特性展示</button>
+  <button data-filter="style">风格化</button>
+</div>
+
+<h2 class="section-title">★ 个人增强版专场（30 张）· 重点推荐</h2>
+<div class="grid" id="gridEnh">
+
+  <div class="card" data-cat="enh hero"><img src="enh-01-identity-hero.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#01</span><span class="desc">身份主视觉<span class="tag must">必用</span></span></div></div>
+  <div class="card" data-cat="enh feature"><img src="enh-02-comparison-5features.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#02</span><span class="desc">5 大增强对比<span class="tag must">必用</span></span></div></div>
+  <div class="card portrait" data-cat="enh feature"><img src="enh-03-task-viz-hero.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#03</span><span class="desc">任务可视化核心<span class="tag must">必用</span></span></div></div>
+  <div class="card portrait" data-cat="enh feature"><img src="enh-04-pairing-demo.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#04</span><span class="desc">手机配对特写</span></div></div>
+  <div class="card" data-cat="enh feature"><img src="enh-05-feature-grid.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#05</span><span class="desc">5 大能力网格<span class="tag must">必用</span></span></div></div>
+  <div class="card" data-cat="enh feature"><img src="enh-06-cross-platform.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#06</span><span class="desc">跨平台三端</span></div></div>
+  <div class="card portrait" data-cat="enh feature"><img src="enh-07-ui-refinement.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#07</span><span class="desc">UI 精修</span></div></div>
+  <div class="card" data-cat="enh feature"><img src="enh-08-env-doctor.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#08</span><span class="desc">环境自检</span></div></div>
+  <div class="card portrait" data-cat="enh style"><img src="enh-09-typographic.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#09</span><span class="desc">大字"增强版"</span></div></div>
+  <div class="card" data-cat="enh feature"><img src="enh-10-ecosystem.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#10</span><span class="desc">能力全景图</span></div></div>
+
+  <div class="card portrait" data-cat="enh social"><img src="enh-11-moments-why.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#11</span><span class="desc">朋友圈 · 为何用增强版</span></div></div>
+  <div class="card portrait" data-cat="enh social"><img src="enh-12-xhs-enhanced.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#12</span><span class="desc">小红书 · 增强版</span></div></div>
+  <div class="card" data-cat="enh social"><img src="enh-13-bili-enhanced.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#13</span><span class="desc">B 站 · 增强版驾到</span></div></div>
+  <div class="card" data-cat="enh social"><img src="enh-14-twitter-enhanced.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#14</span><span class="desc">Twitter · 增强版差异</span></div></div>
+  <div class="card" data-cat="enh hero"><img src="enh-15-readme-hero.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#15</span><span class="desc">README 主视觉<span class="tag must">必用</span></span></div></div>
+
+  <div class="card" data-cat="enh style"><img src="enh-16-workspace-night.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#16</span><span class="desc">夜间工位照</span></div></div>
+  <div class="card" data-cat="enh feature"><img src="enh-17-three-comparison.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#17</span><span class="desc">三版对比表</span></div></div>
+  <div class="card portrait" data-cat="enh feature"><img src="enh-18-pairing-workflow.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#18</span><span class="desc">配对三步流程</span></div></div>
+  <div class="card portrait" data-cat="enh feature"><img src="enh-19-app-store-mobile.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#19</span><span class="desc">手机端三屏</span></div></div>
+  <div class="card portrait" data-cat="enh style"><img src="enh-20-minimal-zeng.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#20</span><span class="desc">极简 · 增</span></div></div>
+
+  <div class="card" data-cat="enh hero"><img src="enh-21-five-badges-hero.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#21</span><span class="desc">五勋章主视觉</span></div></div>
+  <div class="card portrait" data-cat="enh feature"><img src="enh-22-pairing-hero.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#22</span><span class="desc">配对主视觉</span></div></div>
+  <div class="card portrait" data-cat="enh feature"><img src="enh-23-task-panel-detailed.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#23</span><span class="desc">任务面板详图</span></div></div>
+  <div class="card" data-cat="enh feature"><img src="enh-24-env-doctor-terminal.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#24</span><span class="desc">env-doctor 终端</span></div></div>
+  <div class="card" data-cat="enh feature"><img src="enh-25-triple-platform-branded.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#25</span><span class="desc">三端带品牌</span></div></div>
+
+  <div class="card" data-cat="enh hero"><img src="enh-26-final-epic.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#26</span><span class="desc">终极史诗主视觉<span class="tag must">必用</span></span></div></div>
+  <div class="card" data-cat="enh feature"><img src="enh-27-upgrade-path.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#27</span><span class="desc">升级路径图</span></div></div>
+  <div class="card portrait" data-cat="enh style"><img src="enh-28-not-just-fork.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#28</span><span class="desc">不止是 Fork</span></div></div>
+  <div class="card portrait" data-cat="enh social"><img src="enh-29-moments-killer.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#29</span><span class="desc">朋友圈 · 杀手锏</span></div></div>
+  <div class="card" data-cat="enh hero"><img src="enh-30-github-social-branded.jpg" loading="lazy">
+    <div class="meta"><span class="num">E#30</span><span class="desc">GitHub 社交预览<span class="tag must">必用</span></span></div></div>
+
+</div>
+
+<h2 class="section-title">通用宣传图（30 张）</h2>
+<div class="grid" id="gridGen">
+
+  <div class="card" data-cat="gen hero"><img src="01-hero-banner-trio.jpg" loading="lazy">
+    <div class="meta"><span class="num">#01</span><span class="desc">三端主视觉</span></div></div>
+  <div class="card portrait" data-cat="gen social"><img src="02-moments-task-viz.jpg" loading="lazy">
+    <div class="meta"><span class="num">#02</span><span class="desc">朋友圈 · 任务可视化</span></div></div>
+  <div class="card portrait" data-cat="gen social"><img src="03-xhs-pairing.jpg" loading="lazy">
+    <div class="meta"><span class="num">#03</span><span class="desc">小红书 · 手机配对</span></div></div>
+  <div class="card" data-cat="gen social"><img src="04-bili-cover.jpg" loading="lazy">
+    <div class="meta"><span class="num">#04</span><span class="desc">B 站封面</span></div></div>
+  <div class="card" data-cat="gen social"><img src="05-twitter-task-panel.jpg" loading="lazy">
+    <div class="meta"><span class="num">#05</span><span class="desc">Twitter · 任务面板</span></div></div>
+  <div class="card" data-cat="gen social"><img src="06-github-social.jpg" loading="lazy">
+    <div class="meta"><span class="num">#06</span><span class="desc">GitHub 社交预览</span></div></div>
+  <div class="card portrait" data-cat="gen feature"><img src="07-pairing-showcase.jpg" loading="lazy">
+    <div class="meta"><span class="num">#07</span><span class="desc">配对特写</span></div></div>
+  <div class="card" data-cat="gen feature"><img src="08-env-doctor.jpg" loading="lazy">
+    <div class="meta"><span class="num">#08</span><span class="desc">环境自检</span></div></div>
+  <div class="card portrait" data-cat="gen feature"><img src="09-glass-ui.jpg" loading="lazy">
+    <div class="meta"><span class="num">#09</span><span class="desc">玻璃拟态 UI</span></div></div>
+  <div class="card" data-cat="gen feature"><img src="10-cross-platform.jpg" loading="lazy">
+    <div class="meta"><span class="num">#10</span><span class="desc">跨平台三端</span></div></div>
+
+  <div class="card portrait" data-cat="gen style"><img src="11-minimalist-viz.jpg" loading="lazy">
+    <div class="meta"><span class="num">#11</span><span class="desc">极简 · 可视化</span></div></div>
+  <div class="card" data-cat="gen style"><img src="12-neon-dark.jpg" loading="lazy">
+    <div class="meta"><span class="num">#12</span><span class="desc">霓虹暗色</span></div></div>
+  <div class="card" data-cat="gen style"><img src="13-harmony-brand.jpg" loading="lazy">
+    <div class="meta"><span class="num">#13</span><span class="desc">鸿蒙品牌色</span></div></div>
+  <div class="card" data-cat="gen feature"><img src="14-workflow-diagram.jpg" loading="lazy">
+    <div class="meta"><span class="num">#14</span><span class="desc">配对流程图</span></div></div>
+  <div class="card portrait" data-cat="gen feature"><img src="15-phone-ui-mockup.jpg" loading="lazy">
+    <div class="meta"><span class="num">#15</span><span class="desc">手机 UI 蓝图</span></div></div>
+  <div class="card" data-cat="gen style"><img src="16-keynote-style.jpg" loading="lazy">
+    <div class="meta"><span class="num">#16</span><span class="desc">Keynote 风格</span></div></div>
+  <div class="card" data-cat="gen style"><img src="17-gaming-aesthetic.jpg" loading="lazy">
+    <div class="meta"><span class="num">#17</span><span class="desc">游戏风</span></div></div>
+  <div class="card" data-cat="gen style"><img src="18-workspace-photo.jpg" loading="lazy">
+    <div class="meta"><span class="num">#18</span><span class="desc">工位照</span></div></div>
+  <div class="card square" data-cat="gen style"><img src="19-abstract-concept.jpg" loading="lazy">
+    <div class="meta"><span class="num">#19</span><span class="desc">抽象艺术</span></div></div>
+  <div class="card" data-cat="gen feature"><img src="20-comparison-chart.jpg" loading="lazy">
+    <div class="meta"><span class="num">#20</span><span class="desc">对比图</span></div></div>
+
+  <div class="card portrait" data-cat="gen social"><img src="21-app-store-shots.jpg" loading="lazy">
+    <div class="meta"><span class="num">#21</span><span class="desc">App Store 截图</span></div></div>
+  <div class="card square" data-cat="gen style"><img src="22-mascot-cute.jpg" loading="lazy">
+    <div class="meta"><span class="num">#22</span><span class="desc">萌系吉祥物</span></div></div>
+  <div class="card portrait" data-cat="gen feature"><img src="23-task-viz-focus.jpg" loading="lazy">
+    <div class="meta"><span class="num">#23</span><span class="desc">任务可视化特写</span></div></div>
+  <div class="card" data-cat="gen style"><img src="24-code-aesthetic.jpg" loading="lazy">
+    <div class="meta"><span class="num">#24</span><span class="desc">代码美学</span></div></div>
+  <div class="card" data-cat="gen feature"><img src="25-before-after.jpg" loading="lazy">
+    <div class="meta"><span class="num">#25</span><span class="desc">Before / After</span></div></div>
+  <div class="card square" data-cat="gen style"><img src="26-festival.jpg" loading="lazy">
+    <div class="meta"><span class="num">#26</span><span class="desc">节庆风</span></div></div>
+  <div class="card portrait" data-cat="gen style"><img src="27-minimal-text.jpg" loading="lazy">
+    <div class="meta"><span class="num">#27</span><span class="desc">极简文字</span></div></div>
+  <div class="card" data-cat="gen feature"><img src="28-ecosystem.jpg" loading="lazy">
+    <div class="meta"><span class="num">#28</span><span class="desc">鸿蒙生态</span></div></div>
+  <div class="card portrait" data-cat="gen style"><img src="29-magazine-cover.jpg" loading="lazy">
+    <div class="meta"><span class="num">#29</span><span class="desc">杂志封面</span></div></div>
+  <div class="card" data-cat="gen hero"><img src="30-final-hero.jpg" loading="lazy">
+    <div class="meta"><span class="num">#30</span><span class="desc">终极主视觉</span></div></div>
+
+</div>
+
+<div class="modal" id="modal">
+  <img id="modalImg" src="" alt="放大预览">
+</div>
+
+<script>
+  const buttons = document.querySelectorAll('.toolbar button');
+  const allCards = document.querySelectorAll('.card');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const f = btn.dataset.filter;
+      allCards.forEach(c => {
+        const cats = (c.dataset.cat || '').split(' ');
+        const show = (f === 'all') || cats.includes(f);
+        c.style.display = show ? '' : 'none';
+      });
+    });
+  });
+
+  const modal = document.getElementById('modal');
+  const modalImg = document.getElementById('modalImg');
+  document.querySelectorAll('.card img').forEach(img => {
+    img.addEventListener('click', () => {
+      modalImg.src = img.src;
+      modal.classList.add('show');
+    });
+  });
+  modal.addEventListener('click', () => modal.classList.remove('show'));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') modal.classList.remove('show');
+  });
+</script>
+
+</body>
+</html>

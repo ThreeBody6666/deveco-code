@@ -1,11 +1,13 @@
 // 本地开发用：改代码 → 重新编译 → 覆盖到便携版目录 → 双击原快捷方式打开最新版
 // 用法：  bun run install:local
 //
-// 你桌面的 DevEco Code.lnk 指向 E:\finish\DevEco Code\DevEco Code.exe（便携版目录）。
+// Windows: 你桌面的 DevEco Code.lnk 指向 E:\finish\DevEco Code\DevEco Code.exe（便携版目录）。
+// macOS:   /Applications/DevEco Code.app/Contents/Resources/app/out/
+//
 // 本脚本流程：
-// 1. 关掉正在跑的 DevEco Code.exe
+// 1. 关掉正在跑的 DevEco Code
 // 2. 把刚 build 出来的 out/ 目录覆盖到便携版的 resources/app/out/
-// 3. 完成 —— 双击原桌面快捷方式即为最新版
+// 3. 完成 —— 双击原快捷方式即为最新版
 
 import { spawnSync } from "node:child_process"
 import { cpSync, existsSync, rmSync } from "node:fs"
@@ -13,8 +15,15 @@ import { resolve } from "node:path"
 
 const desktopRoot = resolve(import.meta.dir, "..")
 const outDir = resolve(desktopRoot, "out")
-const portableRoot = "E:\\finish\\DevEco Code"
-const portableAppOut = resolve(portableRoot, "resources", "app", "out")
+
+// 平台相关的便携版安装目录与关闭命令
+const isMac = process.platform === "darwin"
+const portableRoot = isMac
+  ? "/Applications/DevEco Code.app"
+  : "E:\\finish\\DevEco Code"
+const portableAppOut = isMac
+  ? resolve(portableRoot, "Contents", "Resources", "app", "out")
+  : resolve(portableRoot, "resources", "app", "out")
 
 if (!existsSync(outDir)) {
   console.error(`❌ 没找到编译产物 ${outDir}，请确认 build 已完成`)
@@ -26,9 +35,14 @@ if (!existsSync(portableRoot)) {
 }
 
 console.log("→ 关闭正在运行的 DevEco Code…")
-spawnSync("taskkill", ["/IM", "DevEco Code.exe", "/F"], { stdio: "ignore" })
+if (isMac) {
+  // osascript 退出应用，等价于点击菜单 Quit
+  spawnSync("osascript", ["-e", 'tell application "DevEco Code" to quit'], { stdio: "ignore" })
+} else {
+  spawnSync("taskkill", ["/IM", "DevEco Code.exe", "/F"], { stdio: "ignore" })
+}
 // 给系统一点时间释放文件句柄
-Bun.sleepSync(1000)
+Bun.sleepSync(1500)
 
 console.log(`→ 备份并覆盖 out/ 到 ${portableAppOut}`)
 try {

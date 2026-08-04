@@ -1,0 +1,202 @@
+name: build-mac
+
+# 个人增强版 macOS 桌面端构建 workflow
+# 与官方 publish.yml 解耦：不依赖 Azure 签名、SST、Sentry、blacksmith runner
+#
+# 触发：
+#   - 手动 workflow_dispatch（可选 channel：dev/beta/prod）
+#   - 推 tag v* → 自动跑 prod 通道并上传到 Release
+#   - 推 mac-build 分支 → 跑 dev 通道
+#
+# 产物：
+#   - DevEco Code-${version}-arm64.dmg / .zip
+#   - DevEco Code-${version}-x64.dmg / .zip
+#   - *.app.tar.gz（用于 electron-updater 增量更新）
+#   - latest-mac.yml
+#
+# 代码签名 / 公证（可选）：
+#   配齐以下 secrets 后自动启用签名 + 公证，未配置则产出未签名版本
+#   - APPLE_CERTIFICATE            : p12 证书 base64
+#   - APPLE_CERTIFICATE_PASSWORD    : p12 密码
+#   - APPLE_API_KEY_ID              : App Store Connect API Key ID
+#   - APPLE_API_ISSUER              : Issuer ID
+#   - APPLE_API_KEY_P8              : API Key .p8 文件内容
+
+on:
+  push:
+    branches:
+      - mac-build
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "构建通道（dev / beta / prod）"
+        required: false
+        type: choice
+        default: dev
+        options:
+          - dev
+          - beta
+          - prod
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write   # 用于上传 release 资源
+
+jobs:
+  build-mac:
+    name: Build macOS (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-14          # Apple Silicon (M1)
+            platform_flag: --mac --arm64
+            app_dir: mac-arm64
+            tar_name: deveco-desktop-mac-arm64.app.tar.gz
+          - arch: x64
+            runner: macos-13          # Intel
+            platform_flag: --mac --x64
+            app_dir: mac
+            tar_name: deveco-desktop-mac-x64.app.tar.gz
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      # ---- 可选：导入 Apple 开发者证书 ----
+      # 仅当仓库配齐 APPLE_CERTIFICATE 等 secrets 时执行
+      - name: Import Apple codesign certificate
+        if: ${{ vars.APPLE_CODESIGN_ENABLED == 'true' }}
+        uses: apple-actions/import-codesign-certs@8f3fb608891dd2244cdab3d69cd68c0d37a7fe93 # v2.0.0
+        with:
+          keychain: build
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
+      # notarize 需要的 API Key 文件（electron-builder 会在 Package 步骤里读 APPLE_API_KEY 环境变量）
+      - name: Write Apple API Key for notarize
+        if: ${{ vars.APPLE_CODESIGN_ENABLED == 'true' }}
+        run: echo "${{ secrets.APPLE_API_KEY_P8 }}" > $RUNNER_TEMP/apple-api-key.p8
+        shell: bash
+
+      - name: Resolve channel
+        id: channel
+        run: |
+          if [ -n "${{ inputs.channel }}" ]; then
+            echo "channel=${{ inputs.channel }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "channel=prod" >> "$GITHUB_OUTPUT"
+          elif [ "${GITHUB_REF_NAME}" = "beta" ]; then
+            echo "channel=beta" >> "$GITHUB_OUTPUT"
+          else
+            echo "channel=dev" >> "$GITHUB_OUTPUT"
+          fi
+        shell: bash
+
+      - name: Prepare desktop package
+        run: bun ./scripts/prepare.ts
+        working-directory: packages/desktop
+        env:
+          DEVECO_CHANNEL: ${{ steps.channel.outputs.channel }}
+
+      - name: Build desktop (electron-vite)
+        run: bun run build
+        working-directory: packages/desktop
+        env:
+          DEVECO_CHANNEL: ${{ steps.channel.outputs.channel }}
+
+      - name: Package with electron-builder
+        run: npx electron-builder ${{ matrix.platform_flag }} --publish never --config electron-builder.config.ts
+        working-directory: packages/desktop
+        timeout-minutes: 60
+        env:
+          DEVECO_CHANNEL: ${{ steps.channel.outputs.channel }}
+          # 仅当 APPLE_CODESIGN_ENABLED=true 时这些值才非空，electron-builder 会自动跳过签名/公证
+          CSC_LINK: ${{ vars.APPLE_CODESIGN_ENABLED == 'true' && secrets.APPLE_CERTIFICATE || '' }}
+          CSC_KEY_PASSWORD: ${{ vars.APPLE_CODESIGN_ENABLED == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+          APPLE_API_KEY: ${{ vars.APPLE_CODESIGN_ENABLED == 'true' && format('{0}/apple-api-key.p8', runner.temp) || '' }}
+          APPLE_API_KEY_ID: ${{ vars.APPLE_CODESIGN_ENABLED == 'true' && secrets.APPLE_API_KEY_ID || '' }}
+          APPLE_API_ISSUER: ${{ vars.APPLE_CODESIGN_ENABLED == 'true' && secrets.APPLE_API_ISSUER || '' }}
+
+      # 生成 .app.tar.gz（用于 electron-updater 增量更新）
+      - name: Create .app.tar.gz for updater
+        working-directory: packages/desktop/dist
+        run: |
+          APP_PATH=$(find "${{ matrix.app_dir }}" -maxdepth 1 -name "*.app" -type d 2>/dev/null | head -1)
+          if [ -n "$APP_PATH" ]; then
+            tar -czf "${{ matrix.tar_name }}" -C "$(dirname "$APP_PATH")" "$(basename "$APP_PATH")"
+            echo "✓ Created ${{ matrix.tar_name }}"
+          else
+            echo "No .app bundle found in ${{ matrix.app_dir }}, skipping tar.gz"
+          fi
+        shell: bash
+
+      - name: Verify code signature (signed builds only)
+        if: ${{ vars.APPLE_CODESIGN_ENABLED == 'true' }}
+        run: |
+          APP_PATH=$(find packages/desktop/dist/${{ matrix.app_dir }} -maxdepth 1 -name "*.app" -type d 2>/dev/null | head -1)
+          if [ -n "$APP_PATH" ]; then
+            codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+            echo "✓ Signature verified: $APP_PATH"
+            # 验证公证状态（如果执行了公证）
+            xcrun stapler validate "$APP_PATH" || echo "Notarization stapling skipped (可能尚未完成)"
+          else
+            echo "No .app bundle found to verify"
+          fi
+        shell: bash
+
+      - name: List build artifacts
+        run: |
+          echo "=== Build artifacts ==="
+          ls -la packages/desktop/dist/ | grep -E '\.(dmg|zip|app\.tar\.gz|yml)$' || echo "(no matching artifacts)"
+        shell: bash
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: deveco-desktop-mac-${{ matrix.arch }}
+          path: |
+            packages/desktop/dist/*.dmg
+            packages/desktop/dist/*.zip
+            packages/desktop/dist/*.app.tar.gz
+            packages/desktop/dist/latest*.yml
+          if-no-files-found: error
+
+  release:
+    name: Attach to GitHub Release
+    needs: build-mac
+    # 仅当推 tag v* 时自动上传到 Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: deveco-desktop-mac-*
+          path: /tmp/desktop
+          merge-multiple: true
+
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s nullglob
+          files=(/tmp/desktop/*.{dmg,zip,app.tar.gz,yml})
+          if (( ${#files[@]} == 0 )); then
+            echo "No mac release assets found"
+            exit 1
+          fi
+          echo "Uploading ${#files[@]} files to release ${GITHUB_REF_NAME}"
+          for f in "${files[@]}"; do echo "  - $(basename "$f")"; done
+          gh release upload "$GITHUB_REF_NAME" "${files[@]}" --clobber --repo "$GITHUB_REPOSITORY"

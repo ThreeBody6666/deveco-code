@@ -1,18 +1,16 @@
 <p align="center">
-  <h1 align="center">DevEco Code</h1>
+  <h1 align="center">DevEco Code · 个人增强版</h1>
 </p>
-<p align="center">面向 HarmonyOS 开发场景的 AI Agent 工具。</p>
+<p align="center">面向 HarmonyOS 开发场景的 AI Agent 工具 · Windows 桌面安装版</p>
 <p align="center">
   <a href="README.en.md">English</a> · 简体中文
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@deveco/deveco-code"><img alt="NPM Version" src="https://img.shields.io/npm/v/@deveco/deveco-code.svg" /></a>
-  <a href="https://www.npmjs.com/package/@deveco/deveco-code"><img alt="NPM Downloads" src="https://img.shields.io/npm/dm/@deveco/deveco-code.svg" /></a>
   <img alt="Node.js" src="https://img.shields.io/badge/Node.js-%3E%3D22-green.svg" />
-  <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20(Arm%20%7C%20x64)%20%7C%20Windows-blue.svg" />
+  <img alt="platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%E5%BC%80%E5%8F%91%E4%B8%AD%20%7C%20Linux%20%E5%BC%80%E5%8F%91%E4%B8%AD-blue.svg" />
   <a href="https://developer.huawei.com/consumer/cn/deveco-studio/"><img alt="DevEco Studio" src="https://img.shields.io/badge/DevEco%20Studio-%3E%3D6.1-orange.svg" /></a>
-  <a href="https://gitcode.com/openharmony-sig/deveco-code/blob/develop/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green.svg" /></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green.svg" /></a>
 </p>
 
 <p align="center">
@@ -23,17 +21,114 @@
 
 ## 本项目（个人增强版 · Windows 桌面安装版）
 
-> 本仓库是 DevEco Code 的个人定制版本：基于 opencode 构建的 **Windows 桌面安装版**（便携式，非 npm CLI 版），在原版基础上新增了**手机配对系统**与一系列体验增强，适合日常本地开发使用。
+> 本仓库是 DevEco Code 的个人定制版本：基于 opencode 构建的 **Windows 桌面安装版**（便携式，非 npm CLI 版），在原版基础上新增了**手机配对系统**、**任务进度可视化**、**环境自检** 等一系列体验增强，适合日常本地开发使用。
+>
+> 官方原版（npm CLI 版）请见文末「[官方项目](#官方项目)」。
 
-### 新增能力
+### 核心亮点
 
 | 能力 | 说明 |
 | --- | --- |
-| 📱 手机配对系统 | 桌面端生成本地二维码，鸿蒙手机端（Mate 80 Pro 等）扫码即可配对；配对后可在手机上查看电脑端会话、收发消息 |
-| 🔍 环境检测（env-doctor） | 启动时自动检测开发环境（DevEco Studio / HDC / Hvigor / Node 等），给出缺失项与修复指引 |
-| 📋 任务摘要面板 | TRAE Work 风格：将「待办」与「上下文占用」合并为单一面板，实时展示任务进度与上下文分布 |
-| 🎨 UI 精修 | 任务面板采用玻璃拟态卡片、语义化配色、精确字重排版，明暗主题自适应 |
-| 🛠 体验修复 | 修复待办状态不同步、上下文恒显示 0%、模型图片不可见、手机端全屏布局遮挡等多项问题 |
+| 📊 **任务进度可视化** | TRAE Work 风格任务面板，将「待办」与「上下文占用」合并为单一面板，实时展示任务进度、状态流转与上下文分布，开发过程一目了然 |
+| 📱 **手机配对系统** | 桌面端生成本地二维码，鸿蒙手机端（Mate 80 Pro 等）扫码即可配对；配对后可在手机上查看电脑端会话、收发消息 |
+| 🔍 **环境自检（env-doctor）** | 启动时自动检测开发环境（DevEco Studio / HDC / Hvigor / Node 等），给出缺失项与修复指引 |
+| 🎨 **UI 精修** | 任务面板采用玻璃拟态卡片、语义化配色、精确字重排版，明暗主题自适应 |
+| 🛠 **体验修复** | 修复待办状态不同步、上下文恒显示 0%、模型图片不可见、手机端全屏布局遮挡等多项问题 |
+
+---
+
+### 1. 任务进度可视化（核心亮点）
+
+在 AI Agent 工具中，**任务过程往往是黑盒**：用户看不到 Agent 正在做什么、做到了哪一步、上下文还剩多少。本项目将「任务面板」从辅助信息提升为主交互视图，让 Agent 的工作过程**可视化、可追踪、可掌控**。
+
+#### 能力详情
+
+- **单一面板合并视图**：将原本分散的「待办列表」与「上下文占用」合并为同一面板，左侧展示当前任务流，右侧展示上下文消耗情况，避免在多个面板间来回切换。
+- **实时任务进度**：任务以卡片形式列出，状态以颜色与图标语义化区分（待开始 / 进行中 / 已完成 / 已阻塞），点击可展开子任务树。
+- **上下文占用可视化**：以进度条 + 百分比形式展示当前会话上下文使用率，并对接近上限时给出红色预警，避免突发截断。
+- **玻璃拟态卡片**：面板整体采用 frosted glass 效果，配合语义化配色与精确字重排版，明暗主题自动适配，长时间观看不易疲劳。
+- **状态同步修复**：修复了原版「待办状态不同步」「上下文恒显示 0%」等问题，面板数据与真实执行状态保持一致。
+
+#### 适用场景
+
+- 长会话任务管理：清晰看到每一步 Agent 的执行结果与待办剩余项
+- 多任务并行：快速切换不同任务上下文，避免混淆
+- 上下文预算管理：在逼近模型上下文上限前主动拆分会话
+
+---
+
+### 2. 手机配对系统
+
+将「电脑端 AI Agent」延伸到「口袋里的鸿蒙手机」。配对完成后，可在手机端实时查看电脑端会话、收发消息，**离开工位也能继续跟进 Agent 的工作**。
+
+#### 工作流程
+
+1. **桌面端生成二维码**：在 DevEco Code 设置面板中开启手机配对，桌面端自动生成包含本地配对信息的二维码。
+2. **鸿蒙手机扫码配对**：使用搭载 HarmonyOS 的手机（已验证 Mate 80 Pro 等）扫描二维码，完成设备配对。
+3. **手机端查看与交互**：配对后，手机端可：
+   - 实时查看电脑端会话内容
+   - 在手机上向 Agent 发送新消息
+   - 接收 Agent 的回复与任务完成通知
+
+#### 技术细节
+
+- 配对协议详见 [REMOTE-BRIDGE-PROTOCOL.md](./REMOTE-BRIDGE-PROTOCOL.md)
+- 仅在**本地局域网**内通信，不经过外部服务器，数据隐私可控
+- 鸿蒙手机端应用源码位于独立仓库 `deveco-code-mobile`
+
+#### 体验修复
+
+- 修复手机端全屏布局被状态栏 / 导航栏遮挡问题
+- 修复模型图片在手机端不可见问题
+- 优化手机端长会话滚动性能
+
+---
+
+### 3. 环境自检（env-doctor）
+
+启动时自动扫描本地开发环境，给出**缺失项清单与修复指引**，避免因环境问题导致构建、调试失败。
+
+#### 检测项
+
+| 检测项 | 说明 |
+| --- | --- |
+| DevEco Studio | 检测安装路径、版本号，校验是否 ≥ 6.1 |
+| HDC | HarmonyOS Device Connector，用于真机调试与日志收集 |
+| Hvigor | HarmonyOS 构建工具链 |
+| Node.js | 校验版本是否 ≥ 22 |
+| `DEVECO_HOME` | 环境变量是否已正确配置 |
+
+#### 输出示例
+
+```
+✓ Node.js        v22.11.0
+✓ DevEco Studio  6.1.0
+✗ HDC            未检测到，请检查 DevEco Studio 安装
+✗ DEVECO_HOME    未配置，请设置指向 DevEco Studio 安装目录
+```
+
+---
+
+### 4. UI 精修
+
+- **玻璃拟态卡片**：frosted glass + 模糊背景，层级清晰
+- **语义化配色**：成功 / 警告 / 错误 / 信息四态配色统一
+- **精确字重排版**：标题、正文、辅助文字字重分明
+- **明暗主题自适应**：跟随系统主题自动切换
+
+---
+
+### 5. 体验修复清单
+
+| # | 问题 | 修复 |
+| --- | --- | --- |
+| 1 | 待办状态不同步 | 重构任务状态同步机制，面板与执行状态强一致 |
+| 2 | 上下文恒显示 0% | 修复上下文计算逻辑，实时反映真实占用 |
+| 3 | 模型图片不可见 | 修复图片资源加载路径 |
+| 4 | 手机端全屏布局遮挡 | 适配安全区，状态栏 / 导航栏不再遮挡内容 |
+| 5 | 长会话滚动卡顿 | 虚拟列表优化，万条消息流畅滚动 |
+
+---
 
 ### 本地开发
 
@@ -46,308 +141,88 @@ cd packages/desktop && bun run install:local
 
 ---
 
-## 快速开始
+## 跨平台开发计划
 
-```bash
-# 1. 安装
-npm install -g @deveco/deveco-code
+当前个人增强版的跨平台支持情况：
 
-# 2. 启动
-deveco
-
-# 3. 开始对话 —— 在终端中直接描述你的 HarmonyOS 开发需求
-提示词示例：
-- 解释一下代码库的架构
-- 帮我重构login_check这个函数
-- 帮我检查并修复语法错误
-```
-
-> 建议使用 [npm 官方源](https://registry.npmjs.org/) 或 [淘宝镜像源](https://registry.npmmirror.com/) 安装，其他镜像源可能因同步延迟导致安装失败或版本滞后。
-
-> 如需编译构建、设备运行等能力，请先安装 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/) 并配置 `DEVECO_HOME` 环境变量。
-
-## 简介
-
-DevEco Code 是一款面向 HarmonyOS 开发场景的 AI Agent 工具，支持代码编写、编译构建、设备运行、文档查阅、运行时调试及 ArkTS 问题修复等能力。
-
-DevEco Code 基于开源项目 OpenCode 扩展开发，保留了 OpenCode 的终端交互、配置体系、 Provider / MCP / Skill / Plugin 等能力，并针对 HarmonyOS 工程增加了 DevEco Studio、Hvigor、HDC、Skill、HarmonyOS 知识库、ArkTS 检查和设备调试相关集成。
-
-## 支持平台
-
-DevEco Code 当前通过 npm 提供以下平台安装包：
-
-| 平台 | 架构 | 说明 |
+| 平台 | 状态 | 说明 |
 | --- | --- | --- |
-| Windows | x64 | Windows 11 |
-| macOS | arm64（Apple Silicon） | M 系列芯片 |
-| macOS | x64（Intel） | Intel 芯片 Mac |
+| Windows | ✅ 已发布 | 当前主力维护版本 |
+| macOS | ✅ 已支持 | 复用 Electron 跨平台架构，原生模块（node-pty / @parcel/watcher）已为 darwin-arm64 与 darwin-x64 准备；环境自检已适配 `/Applications/DevEco-Studio.app/Contents` 路径 |
+| Linux | 🚧 开发中 | 基于 Electron 跨平台方案，适配主流发行版（Ubuntu / Debian / Arch 等） |
 
-> 暂不支持 Linux。HarmonyOS 编译构建、模拟器与真机调试依赖 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/)，且目前仅提供 Windows 与 macOS 版本。
+### macOS 版技术细节
 
-## 推荐配置
+- **打包**：`electron-builder` 配置 `mac.target: ["dmg", "zip"]`，已开启 `hardenedRuntime` 与 `notarize`，entitlements 见 [resources/entitlements.plist](./packages/desktop/resources/entitlements.plist)
+- **原生模块**：`@lydell/node-pty-darwin-arm64` / `@lydell/node-pty-darwin-x64` / `@parcel/watcher-darwin-*` 均在 [packages/desktop/package.json](./packages/desktop/package.json) 的 `optionalDependencies` 中
+- **窗口**：[windows.ts](./packages/desktop/src/main/windows.ts) 已为 darwin 启用 `titleBarStyle: "hidden"` + `trafficLightPosition`，与系统红绿灯按钮对齐
+- **菜单**：[menu.ts](./packages/desktop/src/main/menu.ts) 已为 darwin 注册原生菜单
+- **环境自检**：[env-doctor](./packages/desktop/src/main/env-doctor/) 已适配 macOS DevEco Studio 安装路径（`.app/Contents`），`DEVECO_HOME` 指向 `Contents` 目录
+- **本地开发**：`bun run install:local` 在 macOS 上会覆盖到 `/Applications/DevEco Code.app/Contents/Resources/app/out/`，并通过 `osascript` 优雅退出已运行实例
 
-**操作系统**
+### 打包 macOS 版
 
-- **Windows**：Windows 11 22H2 及以上
-- **macOS**：macOS 15 Sequoia 及以上
-
-**硬件**
-
-- **日常使用**（短会话、单模块改动、以对话与代码编辑为主）：8 GB 及以上内存
-- **重度使用**（大工程、长会话、频繁编译构建与模拟器/真机调试）：16 GB 及以上内存；建议为 DevEco Studio、SDK、模拟器与构建缓存预留 20 GB 及以上可用磁盘空间
-
-**运行时与工具链**
-
-- [Node.js](https://nodejs.org) **22 及以上**
-- [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/) **6.1 及以上**（编译构建、Hvigor、HDC、模拟器/真机运行）
-- 已配置 `DEVECO_HOME` 环境变量，指向 DevEco Studio 安装目录
-
-**终端 Shell**
-
-- Windows：PowerShell 7+（推荐）、PowerShell 5.1+
-- macOS：Zsh（推荐）、Bash
-
-**网络**
-
-- 需要稳定的互联网连接（华为账号登录、模型调用、HarmonyOS 知识库检索等）
-
-## 安装前置
-
-DevEco Code 通过 npm 分发，安装前请先准备以下环境：
-
-1. 安装 [Node.js](https://nodejs.org)，**推荐使用 22 及更高版本**
-2. （可选）安装 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/)，**推荐使用 6.1 及更高版本**；若不安装，HarmonyOS 应用构建、推包等工具将无法使用
-3. （可选）配置 `DEVECO_HOME` 环境变量指向 DevEco Studio 安装目录，默认路径示例：
-   - **macOS**：`/Applications/DevEco-Studio.app`
-   - **Windows**：`C:\Program Files\Huawei\DevEco Studio`
-
-可先在终端验证 Node.js 环境：
+#### 方式一：本地打包
 
 ```bash
-node -v
-npm -v
+cd packages/desktop
+bun run build
+bun run package:mac    # 产出 dist/opencode-desktop-mac-${arch}.dmg 与 .zip
 ```
 
-## 安装与卸载
+> ⚠️ macOS 公证（notarize）需要 Apple 开发者证书与 App Store Connect API Key，配置以下环境变量后才会执行公证步骤：
+> - `CSC_LINK` / `CSC_KEY_PASSWORD`：p12 证书与密码
+> - `APPLE_API_KEY` / `APPLE_API_KEY_ID` / `APPLE_API_ISSUER`：API Key 文件路径与凭据
 
-安装：
+#### 方式二：GitHub Actions 自动构建
+
+推 tag 或手动触发 [.github/workflows/build-mac.yml](./.github/workflows/build-mac.yml) 即可在 GitHub 托管的 macOS runner 上构建 arm64 + x64 双架构 dmg，并自动上传到 Release。
 
 ```bash
-npm install -g @deveco/deveco-code
+# 触发自动构建（推 tag）
+git tag v1.0.0
+git push origin v1.0.0
+
+# 或手动触发
+# GitHub 仓库 → Actions → build-mac → Run workflow
 ```
 
-查看版本、启动：
+代码签名 / 公证为可选项，需在仓库 Settings → Secrets and variables → Actions 中配置：
+- **Variables**：`APPLE_CODESIGN_ENABLED=true`（启用开关）
+- **Secrets**：`APPLE_CERTIFICATE` / `APPLE_CERTIFICATE_PASSWORD` / `APPLE_API_KEY_ID` / `APPLE_API_ISSUER` / `APPLE_API_KEY_P8`
 
-```bash
-deveco --version
-deveco
-```
+未配置时 workflow 仍会产出未签名版本，用户首次打开需右键 → 打开。
 
-更新：
+### Linux 版技术路线
 
-```bash
-deveco upgrade
-```
+- **跨平台框架**：采用 [Electron](https://www.electronjs.org/) 作为桌面壳层，复用现有 Web 前端代码，最大化跨平台一致性
+- **原生模块迁移**：手机配对、环境自检等涉及系统调用的模块将针对各平台单独适配
+- **鸿蒙生态约束**：HarmonyOS 编译构建、模拟器与真机调试依赖 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/)，目前 DevEco Studio 仅提供 Windows 与 macOS 版本；Linux 版将聚焦「代码生成 / 代码审查 / 知识检索」等不依赖 DevEco Studio 的能力
 
-卸载运行时数据与全局包：
+### 进度跟踪
 
-```bash
-deveco uninstall
-npm uninstall -g @deveco/deveco-code
-```
+Mac 版与 Linux 版的开发进度将在本仓库的 [Issues](../../issues) 与 [Projects](../../projects) 中跟踪，欢迎关注与反馈。
 
-## 登录与登出
+---
 
-使用 DevEco Code 需先通过华为账号登录。首次执行 `deveco` 时会在终端内引导完成登录；也可单独执行登录命令：
+## 官方项目
 
-```bash
-deveco auth login
-```
+本仓库基于官方 [DevEco Code](https://gitcode.com/openharmony-sig/deveco-code) 扩展开发。以下为官方原版（npm CLI 版）的相关信息：
 
-登出会清除当前华为账号的本地登录状态，下次启动需重新登录。执行：
+- **官方仓库**：[openharmony-sig/deveco-code](https://gitcode.com/openharmony-sig/deveco-code)
+- **官方文档**：[README (官方原版)](https://gitcode.com/openharmony-sig/deveco-code/blob/develop/README.md) · [FAQ](https://gitcode.com/openharmony-sig/deveco-code/wiki/FAQ.md) · [OpenCode TUI 文档](https://opencode.ai/docs/zh-cn/tui/)
+- **官方安装**：`npm install -g @deveco/deveco-code`（[NPM 包](https://www.npmjs.com/package/@deveco/deveco-code)）
+- **官方支持平台**：Windows x64 · macOS arm64 · macOS x64（暂不支持 Linux）
+- **问题反馈**：官方原版问题请到 [GitCode Issue](https://gitcode.com/openharmony-sig/deveco-code/issues) 反馈；本个人增强版的问题请在本仓库 Issue 反馈
 
-```bash
-deveco auth logout
-```
+> DevEco Code 基于 [OpenCode](https://opencode.ai) 扩展开发，但**并非** OpenCode 团队出品，与 OpenCode 团队无任何附属或关联关系。
 
-## 模型配置
-
-登录后可使用 DevEco Code 提供的免费模型通道。
-
-在 DevEco Code 中输入 `/models` 可进入模型配置界面。当前免费提供 `GLM-5.1` 模型，单账号默认每分钟 50 次请求。也可以通过 `Ctrl+A` 进入 Provider 选择界面，配置支持的第三方模型。
-
-也可以通过 `deveco.jsonc` 配置模型：
-
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "deveco": {
-      "name": "DevEco Code",
-      "models": {
-        "glm-5": {
-          "tool_call": true,
-          "limit": {
-            "context": 200000,
-            "output": 8192
-          }
-        }
-      },
-      "options": {
-        "baseURL": "https://api.openbitfun.com/v1",
-        "apiKey": "{env:DEVECO_API_KEY}"
-      }
-    }
-  }
-}
-```
-
-**UI 检查配置**
-
-UI 检查是功能验证阶段的可选能力，用于验证界面是否符合需求描述。
-
-该功能需调用多模态模型（仅用于 UI 检查，不作为主对话模型）：已登录账号时默认使用内置 Qwen3-VL 模型，未登录时则跳过 UI 检查。
-
-如需配置第三方多模态模型（仅支持 Qwen 系列），可在 `deveco.jsonc` 的 `agent` 中指定，以qwen3-vl-plus为例：
-
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "myprovider": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "alibaba",
-      "options": {
-        "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        "apiKey": "your-api-key",
-      },
-      "models": {
-        "qwen3-vl-plus": {
-          "modalities": {
-            "input": ["text", "image"],
-            "output": ["text"],
-          },
-        },
-      },
-    },
-  },
-  "agent": {
-    "ui_verification": {
-      "mode": "subagent",
-      "model": "myprovider/qwen3-vl-plus", // 格式为<provider-name>/<model-name>
-      "hidden": true,
-    },
-  },
-}
-```
-
-配置文件读取优先级：
-
-1. 项目目录下 `.deveco/deveco.jsonc`
-2. 项目目录下 `deveco.jsonc`
-3. 用户目录下 `.config/deveco/deveco.jsonc`
-
-## Agent 配置
-
-DevEco Code 面向 HarmonyOS 开发提供以下 Agent 配置（按 `Tab` 键切换）：
-
-- `Build`：默认模式，适合工程生成、代码生成、配置修正、测试执行、推包运行和发布执行
-- `Plan`：适合需求拆解、技术方案、发布规划、测试规划和文档生成
-- `Goal`：适合 SDD 五阶段从需求到实现与构建验证的端到端特性交付
-
-## HarmonyOS 场景能力
-
-DevEco Code 集成了常用 HarmonyOS 开发工具能力：
-
-| 工具                       | 说明                   |
-| ------------------------ | -------------------- |
-| `build_project`          | 执行编译构建并导出构建产物        |
-| `start_app`              | 在模拟器或真机上运行应用         |
-| `hdc_log`                | 收集/清理设备日志/查看连接模拟器    |
-| `verify_ui`              | 执行 UI 操作验证功能是否正确        |
-| `check_ets_files`        | ArkTS 静态语法检查         |
-| `arkts_knowledge_search` | HarmonyOS 知识搜索 |
-| `switch_cwd`             | 切换构建项目路径             |
-
-常见场景包括：从零到一创建 HarmonyOS 工程、增量开发页面、修复编译报错、真机调试。
-
-## 扩展能力
-
-DevEco Code 兼容 OpenCode 的 Skill、MCP 和 Plugin 扩展方式。
-
-> 新增或修改 Skill、MCP、Plugin 配置后，需退出并重新执行 `deveco` 启动后才会生效。
-
-### Skills
-
-```bash
-npx skills add vercel-labs/agent-skills
-```
-
-也可以把 Skill 放到 `~/.config/deveco/skills` 目录。
-
-### MCP
-
-可在 `~/.config/deveco/deveco.jsonc` 中配置 MCP：
-
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "playwright": {
-      "type": "local",
-      "command": ["npx", "@playwright/mcp@latest"],
-      "enabled": true
-    }
-  }
-}
-```
-
-### Plugins
-
-```bash
-npm install -g oh-my-opencode
-```
-
-然后在 `deveco.jsonc` 中配置插件入口：
-
-```jsonc
-{
-  "plugin": [
-    "node_modules/oh-my-opencode/dist/index.js"
-  ]
-}
-```
-
-## 从 OpenCode 迁移
-
-如果需要从 OpenCode 迁移到 DevEco Code，请将配置文件迁移到 DevEco Code 目录。主配置文件可参考：
-
-```powershell
-# Windows PowerShell
-Copy-Item -Force "{源路径}\opencode.jsonc" "~\.config\deveco\deveco.jsonc"
-```
-
-```bash
-# macOS
-cp {源路径}/opencode.jsonc ~/.config/deveco/deveco.jsonc
-```
-
-Skills、Agents、Plugins 也可以迁移到 `~/.config/deveco` 下的对应目录；MCP 配置项可迁移到 `deveco.jsonc` 中。
+---
 
 ## 参与贡献
 
 欢迎贡献！请在提交 Pull Request 前阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-## 帮助与支持
-
-- 常见问题请参阅 [FAQ 文档](https://gitcode.com/openharmony-sig/deveco-code/wiki/FAQ.md)
-- 终端常用命令（如 `/models`、`/connect` 等）请参阅 [OpenCode TUI 文档](https://opencode.ai/docs/zh-cn/tui/)
-- 反馈与交流 [GitCode Issue](https://gitcode.com/openharmony-sig/deveco-code/issues)
-
 ## 开源许可
 
 [MIT License](LICENSE)
-
-## 基于 OpenCode 构建的声明
-
-本项目基于开源项目 [OpenCode](https://opencode.ai) 扩展开发。DevEco Code **并非** OpenCode 团队出品，也与 OpenCode 团队无任何附属或关联关系。如有与 DevEco Code 相关的问题，请通过 [GitCode Issue](https://gitcode.com/openharmony-sig/deveco-code/issues) 反馈，而非联系 OpenCode 社区。

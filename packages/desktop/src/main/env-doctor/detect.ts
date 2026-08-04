@@ -1,4 +1,5 @@
 import { access, readFile } from "node:fs/promises"
+import { homedir } from "node:os"
 import { join } from "node:path"
 
 export type EnvDoctorComponentId = "deveco-code" | "deveco-studio" | "deveco-cli" | "node"
@@ -23,6 +24,13 @@ export const DEFAULT_DEVECO_STUDIO_WIN_PATHS: readonly string[] = [
   "D:\\Huawei\\DevEco Studio",
   "D:\\DevEco Studio",
   "E:\\DevEco Studio",
+]
+
+// macOS 上 DevEco Studio 是 .app bundle，"DevEco Studio Home" 指向 Contents 目录。
+// 参考 opencode/src/tool/lib/env.ts 中 darwin 分支的默认路径。
+export const DEFAULT_DEVECO_STUDIO_MAC_PATHS: readonly string[] = [
+  "/Applications/DevEco-Studio.app/Contents",
+  join(homedir(), "Applications", "DevEco-Studio.app", "Contents"),
 ]
 
 export const MIN_DEVECO_STUDIO_VERSION = "6.0.0"

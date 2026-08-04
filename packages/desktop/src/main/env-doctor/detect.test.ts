@@ -5,6 +5,7 @@ import { join } from "node:path"
 
 import {
   DEFAULT_DEVECO_STUDIO_WIN_PATHS,
+  DEFAULT_DEVECO_STUDIO_MAC_PATHS,
   detectDevEcoStudio,
   installGuideFor,
   summarizeReport,
@@ -23,6 +24,30 @@ const withTemp = async (fn: (dir: string) => Promise<void>) => {
 describe("env doctor detect", () => {
   test("known Windows DevEco Studio install paths include Huawei default", () => {
     expect(DEFAULT_DEVECO_STUDIO_WIN_PATHS).toContain("C:\\Program Files\\Huawei\\DevEco Studio")
+  })
+
+  test("macOS DevEco Studio paths point at the .app bundle Contents directory", () => {
+    expect(DEFAULT_DEVECO_STUDIO_MAC_PATHS).toContain("/Applications/DevEco-Studio.app/Contents")
+    // 每条 Mac 路径都以 DevEco-Studio.app/<Contents> 结尾（路径分隔符跨平台不固定）
+    for (const p of DEFAULT_DEVECO_STUDIO_MAC_PATHS) {
+      const normalized = p.replace(/\\/g, "/")
+      expect(normalized.endsWith("/DevEco-Studio.app/Contents")).toBe(true)
+    }
+  })
+
+  test("detectDevEcoStudio accepts a macOS-style Contents path as studio home", async () => {
+    await withTemp(async (dir) => {
+      // 模拟 .app bundle 内 Contents 目录结构
+      const contents = join(dir, "DevEco-Studio.app", "Contents")
+      await mkdir(join(contents, "tools", "node"), { recursive: true })
+      await writeFile(join(contents, "product-info.json"), JSON.stringify({ version: "6.1.0" }), "utf8")
+
+      const result = await detectDevEcoStudio([contents])
+
+      expect(result.status).toBe("ok")
+      expect(result.path).toBe(contents)
+      expect(result.version).toBe("6.1.0")
+    })
   })
 
   test("declares the four required components in stable order", () => {
