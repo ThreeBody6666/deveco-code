@@ -1,0 +1,3 @@
+#!/bin/sh
+node .husky/bump-version.mjs
+git add package.json packages/desktop/package.json
