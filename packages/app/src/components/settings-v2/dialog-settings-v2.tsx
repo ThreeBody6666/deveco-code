@@ -25,13 +25,11 @@ export const DialogSettings: Component = () => {
           <div class="settings-v2-nav-shell">
             <div class="settings-v2-nav-main">
               <div class="settings-v2-nav-hero">
-                <div class="settings-v2-nav-hero-icon">
+                <div class="settings-v2-nav-hero-icon" aria-hidden="true">
                   <Icon name="sliders" />
                 </div>
                 <div class="settings-v2-nav-hero-copy">
-                  <div class="settings-v2-nav-hero-kicker">Settings</div>
                   <div class="settings-v2-nav-hero-title">偏好设置</div>
-                  <div class="settings-v2-nav-hero-description">调整桌面端体验、模型服务和快捷操作。</div>
                 </div>
               </div>
               <div class="settings-v2-nav-insights">
@@ -42,10 +40,10 @@ export const DialogSettings: Component = () => {
                   </div>
                 ))}
               </div>
-              <div class="flex flex-col gap-3">
-                <div class="flex flex-col gap-1.5">
+              <div class="settings-v2-nav-groups flex flex-col gap-3">
+                <div class="settings-v2-nav-group flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.desktop")}</TabsV2.SectionTitle>
-                  <div class="flex flex-col gap-1.5 w-full">
+                  <div class="settings-v2-nav-items flex flex-col gap-1.5 w-full">
                     <TabsV2.Trigger value="general">
                       <Icon name="sliders" />
                       {language.t("settings.tab.general")}
@@ -61,9 +59,9 @@ export const DialogSettings: Component = () => {
                   </div>
                 </div>
 
-                <div class="flex flex-col gap-1.5">
+                <div class="settings-v2-nav-group flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.server")}</TabsV2.SectionTitle>
-                  <div class="flex flex-col gap-1.5 w-full">
+                  <div class="settings-v2-nav-items flex flex-col gap-1.5 w-full">
                     <TabsV2.Trigger value="servers">
                       <Icon name="server" />
                       {language.t("status.popover.tab.servers")}

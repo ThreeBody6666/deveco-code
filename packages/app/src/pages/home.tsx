@@ -370,8 +370,8 @@ function HomeDesign() {
   }
 
   return (
-    <div class="m-2 min-h-0 flex-1 self-stretch overflow-hidden rounded-[18px] border border-v2-border-border-base bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.08),transparent_34%),var(--v2-background-bg-base)] shadow-[var(--v2-elevation-raised)]">
-      <div class="mx-auto grid h-full w-full max-w-[1180px] gap-8 px-6 pb-10 lg:grid-cols-[286px_minmax(0,780px)]">
+    <div class="home-workspace min-h-0 flex-1 self-stretch overflow-hidden">
+      <div class="home-workspace-grid mx-auto grid h-full w-full max-w-[1180px] gap-8 px-6 pb-10 lg:grid-cols-[250px_minmax(0,780px)]">
         <HomeProjectColumn
           projects={projects()}
           selected={state.selection}
@@ -397,7 +397,7 @@ function HomeDesign() {
         />
 
         <section
-          class="min-h-0 min-w-0 flex-1 flex flex-col pt-10"
+          class="home-content min-h-0 min-w-0 flex-1 flex flex-col pt-10"
           aria-label={language.t("sidebar.project.recentSessions")}
         >
           <HomeWorkbenchHero
@@ -793,22 +793,22 @@ function HomeWorkbenchHero(props: {
   language: ReturnType<typeof useLanguage>
 }) {
   return (
-    <div class="mb-5 ml-4 mr-2 overflow-hidden rounded-[24px] border border-v2-border-border-base bg-[linear-gradient(145deg,var(--v2-background-bg-layer-01),var(--v2-background-bg-base)_58%,var(--v2-background-bg-layer-02))] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.05)]">
+    <div class="home-workbench mb-7 ml-1 mr-1 overflow-hidden px-1">
       <div class="flex min-w-0 flex-col gap-5">
         <div class="flex min-w-0 flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div class="min-w-0 flex-1">
-            <div class="mb-3 inline-flex items-center gap-2 rounded-full border border-v2-border-border-base bg-v2-background-bg-base/70 px-2.5 py-1 text-[11px] leading-none tracking-[0.08em] text-v2-text-text-muted [font-weight:620]">
+            <div class="home-workbench-kicker mb-3 inline-flex items-center gap-2 text-[11px] leading-none tracking-[0.08em] text-v2-text-text-muted [font-weight:620]">
               <span class="size-1.5 rounded-full bg-v2-icon-icon-success" />
               DevEco Code Workspace
             </div>
-            <h1 class="max-w-[560px] text-[30px] leading-[34px] tracking-[-0.9px] text-v2-text-text-base [font-weight:650]">
+            <h1 class="max-w-[560px] text-[30px] leading-[34px] text-v2-text-text-base [font-weight:650]">
               {props.language.t("home.workbench.title")}
             </h1>
-            <p class="mt-2 max-w-[560px] text-[13px] leading-5 tracking-[-0.04px] text-v2-text-text-muted [font-weight:440]">
+            <p class="mt-2 max-w-[560px] text-[13px] leading-5 text-v2-text-text-muted [font-weight:440]">
               {props.language.t("home.workbench.description")}
             </p>
           </div>
-          <div class="grid min-w-[220px] grid-cols-2 gap-2 rounded-[18px] border border-v2-border-border-base bg-v2-background-bg-base/55 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <div class="home-workbench-stats grid min-w-[220px] grid-cols-2 gap-x-5 gap-y-3 border-l border-v2-border-border-base pl-5">
             <For each={props.stats}>{(stat) => <HomeWorkbenchStat stat={stat} />}</For>
           </div>
         </div>
@@ -826,12 +826,12 @@ function HomeWorkbenchHero(props: {
 
 function HomeWorkbenchStat(props: { stat: ReturnType<typeof homeWorkbenchStats>[number] }) {
   return (
-    <div class="min-w-0 rounded-[12px] border border-v2-border-border-base bg-v2-background-bg-layer-01 px-3 py-2.5">
+    <div class="home-workbench-stat min-w-0 px-0.5 py-1">
       <div class="text-[10px] leading-3 tracking-[0.08em] text-v2-text-text-faint [font-weight:620]">
         {props.stat.label}
       </div>
       <div
-        class="mt-1 truncate text-[13px] leading-4 tracking-[-0.04px] [font-weight:560]"
+        class="mt-1 truncate text-[13px] leading-4 [font-weight:560]"
         classList={{
           "text-v2-text-text-base": props.stat.tone === "base",
           "text-v2-text-text-muted": props.stat.tone === "muted",
@@ -894,23 +894,21 @@ function HomeQuickAction(props: {
       type="button"
       data-action={props.action}
       disabled={props.disabled}
-      class="group relative flex min-h-[116px] min-w-0 overflow-hidden rounded-[18px] border border-v2-border-border-base bg-v2-background-bg-layer-01 p-4 text-left shadow-[0_1px_0_rgba(255,255,255,0.04),0_18px_42px_rgba(0,0,0,0.10)] transition-[background-color,border-color,box-shadow,transform] duration-[160ms] ease-out before:absolute before:inset-x-4 before:top-0 before:h-px before:bg-white/10 hover:-translate-y-0.5 hover:border-v2-border-border-muted hover:bg-v2-background-bg-layer-03 hover:shadow-[0_24px_52px_rgba(0,0,0,0.16)] focus-visible:outline-none focus-visible:shadow-[0_0_0_1px_var(--v2-border-border-focus),0_24px_52px_rgba(0,0,0,0.16)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0 disabled:hover:bg-v2-background-bg-layer-01 disabled:hover:shadow-[0_1px_0_rgba(255,255,255,0.04),0_18px_42px_rgba(0,0,0,0.10)]"
+      class="home-quick-action group relative flex min-h-[108px] min-w-0 overflow-hidden rounded-lg border border-v2-border-border-base bg-v2-background-bg-layer-01 p-4 text-left transition-[background-color,border-color,box-shadow,transform] duration-[180ms] ease-out hover:-translate-y-0.5 hover:border-v2-border-border-muted hover:bg-v2-background-bg-layer-03 hover:shadow-[0_14px_30px_rgba(0,0,0,0.12)] focus-visible:outline-none focus-visible:shadow-[0_0_0_1px_var(--v2-border-border-focus),0_14px_30px_rgba(0,0,0,0.12)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0 disabled:hover:bg-v2-background-bg-layer-01 disabled:hover:shadow-none"
       onClick={props.onClick}
     >
       <span class="flex min-w-0 flex-1 flex-col justify-between gap-4">
         <span class="flex items-center justify-between gap-2">
-          <span class="flex size-9 items-center justify-center rounded-[12px] bg-v2-background-bg-base text-v2-icon-icon-muted shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base)] transition-colors group-hover:text-v2-icon-icon-base">
+          <span class="flex size-9 items-center justify-center rounded-[12px] bg-v2-background-bg-base text-v2-icon-icon-muted shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base)] transition-[color,transform] duration-[180ms] ease-out group-hover:scale-[1.04] group-hover:text-v2-icon-icon-base">
             <IconV2 name={props.icon} />
           </span>
-          <span class="flex size-7 items-center justify-center rounded-full border border-v2-border-border-base bg-v2-background-bg-base/70 text-v2-icon-icon-faint transition-colors group-hover:text-v2-icon-icon-muted">
+          <span class="flex size-7 items-center justify-center rounded-full border border-v2-border-border-base bg-v2-background-bg-base/70 text-v2-icon-icon-faint transition-[color,transform] duration-[180ms] ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-v2-icon-icon-muted">
             <IconV2 name="arrow-up-right" size="small" />
           </span>
         </span>
         <span class="flex min-w-0 flex-col gap-1.5">
-          <span class="truncate text-[14px] leading-5 tracking-[-0.08px] text-v2-text-text-base [font-weight:620]">
-            {props.title}
-          </span>
-          <span class="line-clamp-2 text-[12px] leading-4 tracking-[-0.02px] text-v2-text-text-muted [font-weight:440]">
+          <span class="truncate text-[14px] leading-5 text-v2-text-text-base [font-weight:620]">{props.title}</span>
+          <span class="line-clamp-2 text-[12px] leading-4 text-v2-text-text-muted [font-weight:440]">
             {props.description}
           </span>
         </span>
@@ -1003,7 +1001,11 @@ function HomeSessionSearch(props: {
 
   return (
     <div class="ml-4 mr-2 w-[calc(100%_-_24px)]">
-      <div ref={root} data-component="home-session-search" class="relative z-10 w-full rounded-[16px] border border-v2-border-border-base bg-v2-background-bg-layer-01 p-1 shadow-[0_10px_28px_rgba(0,0,0,0.10)]">
+      <div
+        ref={root}
+        data-component="home-session-search"
+        class="relative z-10 w-full rounded-[16px] border border-v2-border-border-base bg-v2-background-bg-layer-01 p-1 shadow-[0_10px_28px_rgba(0,0,0,0.10)]"
+      >
         <Show when={props.open}>
           <div
             data-component="home-session-search-panel"
@@ -1208,8 +1210,8 @@ function HomeSessionEmpty(props: {
 }) {
   const language = useLanguage()
   return (
-    <div class="mx-4 flex min-h-[300px] min-w-0 flex-col items-center justify-center rounded-[24px] border border-dashed border-v2-border-border-muted bg-[linear-gradient(180deg,var(--v2-background-bg-layer-01),var(--v2-background-bg-base))] px-8 py-12 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_18px_46px_rgba(0,0,0,0.10)]">
-      <div class="flex size-14 items-center justify-center rounded-[18px] bg-v2-background-bg-base text-v2-icon-icon-muted shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base),0_12px_30px_rgba(0,0,0,0.12)]">
+    <div class="mx-1 flex min-h-[260px] min-w-0 flex-col items-center justify-center border-t border-v2-border-border-muted px-8 py-12 text-center">
+      <div class="flex size-12 items-center justify-center rounded-lg border border-v2-border-border-base bg-v2-background-bg-layer-01 text-v2-icon-icon-muted">
         <IconV2 name="edit" size="large" />
       </div>
       <div class="mt-5 max-w-[420px] text-[17px] leading-6 tracking-[-0.16px] text-v2-text-text-base [font-weight:650]">
@@ -1280,7 +1282,9 @@ function HomeSessionSkeleton(props: { label: string }) {
         <div class={HOME_SECTION_LABEL}>{props.label}</div>
       </div>
       <div class="flex min-w-0 flex-col gap-px" aria-hidden="true">
-        <For each={[0, 1, 2, 3]}>{() => <div class="h-10 rounded-[6px] bg-v2-background-bg-deep opacity-70" />}</For>
+        <For each={[0, 1, 2, 3]}>
+          {() => <div class="home-session-skeleton-row h-10 rounded-[6px] bg-v2-background-bg-deep opacity-70" />}
+        </For>
       </div>
     </div>
   )

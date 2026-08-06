@@ -133,9 +133,11 @@
 ### 本地开发
 
 ```bash
-# 修改源码后重新编译并覆盖到便携版安装目录（E:\finish\DevEco Code）
+# 修改源码后重新编译并覆盖到本地安装目录
 cd packages/desktop && bun run install:local
 ```
+
+默认目录为 Windows 的 `E:\finish\DevEco Code`、macOS 的 `/Applications/DevEco Code.app`，以及 Linux 的 `~/.local/opt/DevEco Code`。可通过 `DEVECO_CODE_INSTALL_DIR` 指向其他已解包的应用目录。
 
 配对协议说明见 [REMOTE-BRIDGE-PROTOCOL.md](./REMOTE-BRIDGE-PROTOCOL.md)。
 
@@ -196,7 +198,9 @@ git push origin v1.0.0
 ### Linux 版技术路线
 
 - **跨平台框架**：采用 [Electron](https://www.electronjs.org/) 作为桌面壳层，复用现有 Web 前端代码，最大化跨平台一致性
-- **原生模块迁移**：手机配对、环境自检等涉及系统调用的模块将针对各平台单独适配
+- **打包基线**：[build-linux.yml](./.github/workflows/build-linux.yml) 已支持 Linux x64 CI，产出 AppImage、deb 与 rpm 安装包；可推送 `linux-build` 分支或在 Actions 中手动触发
+- **本地开发**：将解包后的应用放到 `~/.local/opt/DevEco Code`，或设置 `DEVECO_CODE_INSTALL_DIR`，然后运行 `bun run install:local`
+- **原生模块迁移**：环境自检已覆盖 `/opt/DevEco-Studio`、`/usr/local/DevEco-Studio` 与用户级安装目录；其他涉及系统调用的模块仍需真机验证
 - **鸿蒙生态约束**：HarmonyOS 编译构建、模拟器与真机调试依赖 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/)，目前 DevEco Studio 仅提供 Windows 与 macOS 版本；Linux 版将聚焦「代码生成 / 代码审查 / 知识检索」等不依赖 DevEco Studio 的能力
 
 ### 进度跟踪

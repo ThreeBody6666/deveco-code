@@ -4,6 +4,7 @@ import { promisify } from "node:util"
 import {
   DEFAULT_DEVECO_STUDIO_WIN_PATHS,
   DEFAULT_DEVECO_STUDIO_MAC_PATHS,
+  DEFAULT_DEVECO_STUDIO_LINUX_PATHS,
   detectDevEcoStudio,
   summarizeReport,
   installGuideFor,
@@ -114,6 +115,7 @@ export function createDefaultEnvDoctorDeps(
     studioSearchPaths: () => {
       if (process.platform === "win32") return DEFAULT_DEVECO_STUDIO_WIN_PATHS
       if (process.platform === "darwin") return DEFAULT_DEVECO_STUDIO_MAC_PATHS
+      if (process.platform === "linux") return DEFAULT_DEVECO_STUDIO_LINUX_PATHS
       return []
     },
     readCustomStudioPath: storageAccessors.readCustomStudioPath,

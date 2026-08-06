@@ -6,6 +6,7 @@ import { join } from "node:path"
 import {
   DEFAULT_DEVECO_STUDIO_WIN_PATHS,
   DEFAULT_DEVECO_STUDIO_MAC_PATHS,
+  DEFAULT_DEVECO_STUDIO_LINUX_PATHS,
   detectDevEcoStudio,
   installGuideFor,
   summarizeReport,
@@ -33,6 +34,11 @@ describe("env doctor detect", () => {
       const normalized = p.replace(/\\/g, "/")
       expect(normalized.endsWith("/DevEco-Studio.app/Contents")).toBe(true)
     }
+  })
+
+  test("Linux DevEco Studio paths cover system and per-user installations", () => {
+    expect(DEFAULT_DEVECO_STUDIO_LINUX_PATHS).toContain("/opt/DevEco-Studio")
+    expect(DEFAULT_DEVECO_STUDIO_LINUX_PATHS.some((path) => path.includes(".local"))).toBe(true)
   })
 
   test("detectDevEcoStudio accepts a macOS-style Contents path as studio home", async () => {

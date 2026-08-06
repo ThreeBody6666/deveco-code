@@ -27,8 +27,8 @@
     border: 1px solid var(--border-weak-base);
     background: var(--surface-base);
     transition:
-      background-color 150ms,
-      border-color 150ms;
+      background-color var(--app-motion-fast, 120ms) ease-out,
+      border-color var(--app-motion-fast, 120ms) ease-out;
   }
 
   [data-slot="switch-thumb"] {
@@ -48,8 +48,9 @@
 
     transform: translateX(-1px);
     transition:
-      transform 150ms,
-      background-color 150ms;
+      transform var(--app-motion-base, 180ms) cubic-bezier(0.16, 1, 0.3, 1),
+      background-color var(--app-motion-fast, 120ms) ease-out,
+      scale var(--app-motion-press, 90ms) ease-out;
   }
 
   [data-slot="switch-label"] {
@@ -108,6 +109,10 @@
     background-color: var(--surface-hover);
   }
 
+  &:active:not([data-disabled], [data-readonly]) [data-slot="switch-thumb"] {
+    scale: 0.9;
+  }
+
   &[data-disabled] {
     cursor: not-allowed;
   }
@@ -128,5 +133,12 @@
   &[data-readonly] {
     cursor: default;
     pointer-events: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-component="switch"] [data-slot="switch-control"],
+  [data-component="switch"] [data-slot="switch-thumb"] {
+    transition: none;
   }
 }

@@ -22,6 +22,15 @@
   user-select: none;
   cursor: pointer;
   outline: none;
+  transition:
+    color var(--app-motion-fast, 120ms) ease-out,
+    background-color var(--app-motion-fast, 120ms) ease-out,
+    box-shadow var(--app-motion-fast, 120ms) ease-out,
+    transform var(--app-motion-press, 90ms) ease-out;
+}
+
+[data-component="button-v2"]:is(:active, [data-state="pressed"]):not(:disabled) {
+  transform: translateY(0.5px) scale(0.985);
 }
 
 [data-component="button-v2"]:focus {
@@ -63,6 +72,18 @@
 
 [data-component="button-v2"] [data-slot="icon-svg"] {
   color: currentColor;
+  transition: transform var(--app-motion-base, 180ms) cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-component="button-v2"]:is(:hover, [data-state="hover"]):not(:disabled) [data-slot="icon-svg"] {
+  transform: translateY(-0.5px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-component="button-v2"],
+  [data-component="button-v2"] [data-slot="icon-svg"] {
+    transition: none;
+  }
 }
 
 /* Neutral */

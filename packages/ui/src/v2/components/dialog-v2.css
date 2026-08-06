@@ -4,7 +4,8 @@
   position: fixed;
   inset: 0;
   z-index: 50;
-  background-color: var(--v2-overlay-simple-overlay-scrim);
+  background-color: color-mix(in srgb, var(--v2-background-bg-deep) 72%, transparent);
+  animation: dialog-v2-overlay-in var(--app-motion-fast, 120ms) ease-out both;
 }
 
 [data-component="dialog-v2"] {
@@ -27,6 +28,7 @@
     border-radius: 6px;
     overflow: hidden;
     pointer-events: auto;
+    animation: dialog-v2-content-in var(--app-motion-base, 180ms) cubic-bezier(0.16, 1, 0.3, 1) both;
 
     [data-slot="dialog-content"] {
       display: flex;
@@ -145,5 +147,34 @@
   &[data-size="x-large"] [data-slot="dialog-container"] {
     width: 800px;
     height: 560px;
+  }
+}
+
+@keyframes dialog-v2-overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-v2-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-component="dialog-overlay"],
+  [data-component="dialog-v2"] [data-slot="dialog-container"] {
+    animation: none;
   }
 }

@@ -1,5 +1,6 @@
-import { createMemo, createSignal, Component, Show, For, onMount, onCleanup } from "solid-js"
+import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Icon } from "@opencode-ai/ui/icon"
+import { Component, For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js"
 import { generateQRSvg } from "./qr-lite"
 
 type RemoteBridgeInfo = {
@@ -10,188 +11,248 @@ type RemoteBridgeInfo = {
   pairUrls: string[]
 }
 
-function getApi() {
-  return (window as any).api as {
-    remoteBridgeInfo: () => Promise<RemoteBridgeInfo | null>
-    remoteBridgeRegenerate: () => Promise<RemoteBridgeInfo | null>
-  } | undefined
+type RemoteBridgeApi = {
+  remoteBridgeInfo: () => Promise<RemoteBridgeInfo | null>
+  remoteBridgeRegenerate: () => Promise<RemoteBridgeInfo | null>
 }
 
-function formatExpiry(ts: number): string {
-  const d = new Date(ts)
-  const now = Date.now()
-  const min = Math.max(0, Math.round((ts - now) / 60000))
-  if (min < 1) return "即将过期"
-  if (min < 60) return `${min} 分钟后过期`
-  return `${Math.floor(min / 60)} 小时 ${min % 60} 分钟后过期`
+function getApi() {
+  return (window as Window & { api?: RemoteBridgeApi }).api
+}
+
+function message(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
+
+function formatExpiry(timestamp: number, now: number) {
+  const seconds = Math.max(0, Math.ceil((timestamp - now) / 1000))
+  if (seconds === 0) return "正在更新"
+  if (seconds < 60) return `${seconds} 秒后过期`
+  const minutes = Math.ceil(seconds / 60)
+  if (minutes < 60) return `${minutes} 分钟后过期`
+  return `${Math.floor(minutes / 60)} 小时 ${minutes % 60} 分钟后过期`
 }
 
 export const SettingsRemoteV2: Component = () => {
-  const [info, setInfo] = createSignal<RemoteBridgeInfo | null>(null)
+  const [info, setInfo] = createSignal<RemoteBridgeInfo>()
   const [error, setError] = createSignal("")
   const [loading, setLoading] = createSignal(true)
-  let timer: ReturnType<typeof setInterval>
+  const [refreshing, setRefreshing] = createSignal(false)
+  const [copyState, setCopyState] = createSignal<"idle" | "copied" | "error">("idle")
+  const [now, setNow] = createSignal(Date.now())
+  let fetching = false
+  let refreshedCode = ""
+  let expiryTimer: ReturnType<typeof setInterval> | undefined
+  let copyTimer: ReturnType<typeof setTimeout> | undefined
 
-  const fetchInfo = async () => {
-    const api = getApi()
-    if (!api) {
-      setError("仅桌面端可用")
-      setLoading(false)
-      return
-    }
+  const loadInfo = async (showLoading = true) => {
+    if (fetching) return
+    fetching = true
+    if (showLoading) setLoading(true)
     try {
+      const api = getApi()
+      if (!api) throw new Error("手机远程功能仅在桌面端可用")
       const data = await api.remoteBridgeInfo()
+      if (!data) throw new Error("远程桥尚未就绪")
       setInfo(data)
       setError("")
-    } catch (e: any) {
-      setError(e?.message ?? String(e))
+    } catch (cause) {
+      setInfo()
+      setError(message(cause))
     } finally {
+      fetching = false
       setLoading(false)
     }
   }
 
+  const regenerate = async () => {
+    if (refreshing()) return
+    setRefreshing(true)
+    setCopyState("idle")
+    try {
+      const api = getApi()
+      if (!api) throw new Error("手机远程功能仅在桌面端可用")
+      const data = await api.remoteBridgeRegenerate()
+      if (!data) throw new Error("远程桥尚未就绪")
+      refreshedCode = ""
+      setInfo(data)
+      setError("")
+      setNow(Date.now())
+    } catch (cause) {
+      setError(message(cause))
+    } finally {
+      setRefreshing(false)
+      setLoading(false)
+    }
+  }
+
+  const copyUrl = async () => {
+    const url = info()?.pairUrls[0]
+    if (!url) return
+    clearTimeout(copyTimer)
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopyState("copied")
+    } catch {
+      setCopyState("error")
+    }
+    copyTimer = setTimeout(() => setCopyState("idle"), 2200)
+  }
+
   onMount(() => {
-    fetchInfo()
-    timer = setInterval(() => {
-      if (info()) {
-        const remaining = (info()!.pairCodeExpiresAt - Date.now()) / 1000
-        if (remaining <= 0) fetchInfo()
-      }
-    }, 5000)
+    void loadInfo()
+    expiryTimer = setInterval(() => {
+      const time = Date.now()
+      setNow(time)
+      const current = info()
+      if (!current || current.pairCodeExpiresAt > time || refreshedCode === current.pairCode) return
+      refreshedCode = current.pairCode
+      void loadInfo(false)
+    }, 1000)
   })
 
-  onCleanup(() => clearInterval(timer))
+  onCleanup(() => {
+    clearInterval(expiryTimer)
+    clearTimeout(copyTimer)
+  })
 
-  const qrData = createMemo(() => {
-    const i = info()
-    if (!i || !i.pairUrls.length) return null
-    return i.pairUrls[0]
+  const readyInfo = createMemo(() => (error() ? undefined : info()))
+  const qrData = createMemo(() => readyInfo()?.pairUrls[0])
+  const expiry = createMemo(() => {
+    const current = readyInfo()
+    return current ? formatExpiry(current.pairCodeExpiresAt, now()) : ""
+  })
+  const expiringSoon = createMemo(() => {
+    const current = readyInfo()
+    return current ? current.pairCodeExpiresAt - now() < 60_000 : false
   })
 
   return (
-    <div class="flex flex-col gap-6 p-4" style="max-width: 560px">
-      <div class="flex flex-col gap-2">
-        <h2 class="text-lg font-semibold text-gray-900">手机远程</h2>
-        <p class="text-sm text-gray-500">
-          手机端 DevEco Code 通过局域网连接到电脑，查看会话和发送消息给 Agent。
-        </p>
-      </div>
-
-      <Show when={loading()}>
-        <div class="flex items-center gap-2 text-sm text-gray-400">
-          <Icon name="cloud-upload" class="animate-spin" />
-          正在获取配对信息…
-        </div>
-      </Show>
-
-      <Show when={error()}>
-        <div class="flex flex-col items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
-          <div class="flex items-center gap-2">
-            <Icon name="circle-ban-sign" class="text-red-500" />
-            <span class="text-sm font-medium text-red-700">远程桥未启动</span>
+    <>
+      <header class="settings-v2-tab-header settings-v2-remote-header">
+        <div class="settings-v2-remote-heading">
+          <div class="settings-v2-remote-heading-icon" aria-hidden="true">
+            <Icon name="speech-bubble" />
           </div>
-          <p class="text-xs text-red-600">
-            {error() === "仅桌面端可用"
-              ? "手机远程功能仅在 DevEco Code 桌面端可用。"
-              : "请确认 DevEco Code 已完全启动（服务就绪后会自动重启远程桥）。"}
-          </p>
+          <div>
+            <h2 class="settings-v2-tab-title">手机远程</h2>
+            <p class="settings-v2-remote-subtitle">局域网桥接与配对状态</p>
+          </div>
         </div>
-      </Show>
+      </header>
 
-      <Show when={info() && !error()}>
-        <div class="flex flex-col gap-4 rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          {/* IP 信息 */}
-          <div class="flex flex-col gap-2">
-            <span class="text-xs font-medium uppercase tracking-wide text-gray-400">主机地址</span>
-            <div class="flex flex-wrap gap-2">
-              <For each={info()!.hostnames}>
-                {(host) => (
-                  <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-mono text-blue-700">
-                    {host}:{info()!.port}
-                  </span>
-                )}
-              </For>
+      <main class="settings-v2-tab-body settings-v2-remote" aria-busy={loading()}>
+        <Show when={loading() && !info()}>
+          <div class="settings-v2-remote-loading" role="status">
+            <span class="settings-v2-remote-spinner" aria-hidden="true" />
+            <div>
+              <strong>正在连接远程桥</strong>
+              <span>获取本机网络与配对信息</span>
             </div>
           </div>
+        </Show>
 
-          {/* 配对码 */}
-          <div class="flex flex-col gap-2">
-            <span class="text-xs font-medium uppercase tracking-wide text-gray-400">配对码</span>
-            <div class="flex items-center gap-4">
-              <span
-                class="rounded-lg bg-gray-50 px-6 py-2.5 text-3xl font-bold tracking-[0.3em] text-gray-900 font-mono"
-                style="letter-spacing: 0.3em"
-              >
-                {info()!.pairCode}
-              </span>
-              <span class="text-xs text-gray-400">{formatExpiry(info()!.pairCodeExpiresAt)}</span>
+        <Show when={error()}>
+          <section class="settings-v2-remote-error" role="alert">
+            <div class="settings-v2-remote-error-icon" aria-hidden="true">
+              <Icon name="warning" />
             </div>
-          </div>
+            <div class="settings-v2-remote-error-copy">
+              <strong>远程桥不可用</strong>
+              <span>{error()}</span>
+            </div>
+            <ButtonV2 variant="neutral" onClick={() => void loadInfo()} disabled={loading()}>
+              重试
+            </ButtonV2>
+          </section>
+        </Show>
 
-          {/* Pair URL + QR */}
-          <Show when={qrData()}>
-            <div class="flex flex-col gap-3">
-              <span class="text-xs font-medium uppercase tracking-wide text-gray-400">
-                扫码配对（推荐）
-              </span>
-              <div class="flex items-start gap-4">
-                <div
-                  class="rounded-lg border border-gray-100 bg-white p-2"
-                  style="width: 260px; height: 260px; display: flex; align-items: center; justify-content: center;"
-                  innerHTML={generateQRSvg(qrData()!, 240)}
-                />
-                <div class="flex flex-1 flex-col gap-2 pt-1">
-                  <p class="text-xs text-gray-500">手机端：</p>
-                  <ol class="list-inside list-decimal space-y-0.5 text-xs text-gray-500">
-                    <li>打开手机 DevEco Code</li>
-                    <li>点扫码配对，对准这个二维码</li>
-                    <li>或复制下面的 URL 手动填入</li>
-                  </ol>
-                  <div class="mt-1 flex items-center gap-2">
-                    <code class="flex-1 truncate rounded-lg bg-gray-50 px-3 py-1.5 text-[11px] text-gray-700 font-mono">
-                      {qrData()}
-                    </code>
-                    <button
-                      class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
-                      onClick={() => {
-                        const s = qrData()
-                        if (s) navigator.clipboard.writeText(s)
-                      }}
-                    >
-                      复制
-                    </button>
+        <Show when={readyInfo()}>
+          {(bridge) => (
+            <>
+              <section class="settings-v2-remote-status" aria-label="远程桥状态">
+                <div class="settings-v2-remote-status-main">
+                  <span class="settings-v2-remote-status-dot" aria-hidden="true" />
+                  <div>
+                    <strong>局域网桥已就绪</strong>
+                    <span>{bridge().hostnames.length} 个可用地址</span>
                   </div>
                 </div>
-              </div>
-            </div>
-          </Show>
-        </div>
+                <span
+                  class="settings-v2-remote-expiry"
+                  data-warning={expiringSoon() ? "" : undefined}
+                  aria-live="polite"
+                >
+                  {expiry()}
+                </span>
+              </section>
 
-        {/* 重新生成 */}
-        <div class="flex items-center gap-2">
-          <button
-            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 transition-colors hover:bg-gray-50 active:bg-gray-100"
-            onClick={async () => {
-              setLoading(true)
-              setError("")
-              const api = getApi()
-              if (!api) return
-              try {
-                const data = await api.remoteBridgeRegenerate()
-                setInfo(data)
-              } catch (e: any) {
-                setError(e?.message ?? String(e))
-              } finally {
-                setLoading(false)
-              }
-            }}
-          >
-            <Icon name="arrow-undo-down" class="h-3.5 w-3.5" />
-            重新生成配对码
-          </button>
-          <span class="text-xs text-gray-400">配对成功后自动轮换，也可手动刷新。</span>
-        </div>
-      </Show>
-    </div>
+              <section class="settings-v2-remote-stage" aria-labelledby="remote-pair-title">
+                <div class="settings-v2-remote-qr-column">
+                  <div
+                    class="settings-v2-remote-qr"
+                    role="img"
+                    aria-label="手机远程配对二维码"
+                    innerHTML={qrData() ? generateQRSvg(qrData()!, 232) : ""}
+                  />
+                  <span>扫码配对</span>
+                </div>
+
+                <div class="settings-v2-remote-details">
+                  <div class="settings-v2-remote-code-block">
+                    <span class="settings-v2-remote-label" id="remote-pair-title">
+                      配对码
+                    </span>
+                    <strong class="settings-v2-remote-code">{bridge().pairCode}</strong>
+                  </div>
+
+                  <div class="settings-v2-remote-addresses">
+                    <span class="settings-v2-remote-label">主机地址</span>
+                    <div class="settings-v2-remote-address-list">
+                      <For each={bridge().hostnames}>
+                        {(host) => <code>{host}:{bridge().port}</code>}
+                      </For>
+                    </div>
+                  </div>
+
+                  <Show when={qrData()}>
+                    <div class="settings-v2-remote-link">
+                      <div>
+                        <span class="settings-v2-remote-label">连接地址</span>
+                        <code title={qrData()}>{qrData()}</code>
+                      </div>
+                      <button
+                        type="button"
+                        class="settings-v2-remote-copy"
+                        onClick={() => void copyUrl()}
+                        aria-label={copyState() === "copied" ? "连接地址已复制" : "复制连接地址"}
+                      >
+                        <Icon name={copyState() === "copied" ? "check" : "copy"} />
+                      </button>
+                    </div>
+                    <span class="settings-v2-remote-copy-status" aria-live="polite">
+                      {copyState() === "copied" ? "连接地址已复制" : copyState() === "error" ? "复制失败" : ""}
+                    </span>
+                  </Show>
+                </div>
+              </section>
+
+              <footer class="settings-v2-remote-footer">
+                <ButtonV2
+                  class="settings-v2-remote-refresh"
+                  variant="neutral"
+                  icon="reset"
+                  disabled={refreshing()}
+                  onClick={() => void regenerate()}
+                >
+                  {refreshing() ? "正在生成" : "重新生成配对码"}
+                </ButtonV2>
+                <span>配对码会在连接成功或到期后自动轮换</span>
+              </footer>
+            </>
+          )}
+        </Show>
+      </main>
+    </>
   )
 }

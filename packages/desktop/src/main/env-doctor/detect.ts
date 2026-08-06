@@ -33,6 +33,12 @@ export const DEFAULT_DEVECO_STUDIO_MAC_PATHS: readonly string[] = [
   join(homedir(), "Applications", "DevEco-Studio.app", "Contents"),
 ]
 
+export const DEFAULT_DEVECO_STUDIO_LINUX_PATHS: readonly string[] = [
+  "/opt/DevEco-Studio",
+  "/usr/local/DevEco-Studio",
+  join(homedir(), ".local", "share", "DevEco-Studio"),
+]
+
 export const MIN_DEVECO_STUDIO_VERSION = "6.0.0"
 
 export type EnvDoctorItemStatus = "ok" | "missing" | "outdated" | "unknown"

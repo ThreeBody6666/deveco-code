@@ -14,6 +14,15 @@
   outline: none;
   padding: 0;
   cursor: default;
+  transition:
+    color var(--app-motion-fast, 120ms) ease-out,
+    background-color var(--app-motion-fast, 120ms) ease-out,
+    box-shadow var(--app-motion-fast, 120ms) ease-out,
+    transform var(--app-motion-press, 90ms) ease-out;
+}
+
+[data-component="icon-button-v2"]:is(:active, [data-state="pressed"]):not(:disabled) {
+  transform: scale(0.92);
 }
 
 [data-component="icon-button-v2"]:focus {
@@ -43,6 +52,12 @@
 
 [data-component="icon-button-v2"] [data-slot="icon-svg"] {
   color: currentColor;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-component="icon-button-v2"] {
+    transition: none;
+  }
 }
 
 /* Neutral */

@@ -1,5 +1,5 @@
 import type { Todo, Message, Part, UserMessage } from "@opencode-ai/sdk/v2"
-import { For, Show, createMemo, createSignal } from "solid-js"
+import { For, Show, createMemo, createSignal, createUniqueId, type JSX } from "solid-js"
 import { Icon } from "@opencode-ai/ui/icon"
 import { findLast } from "@opencode-ai/core/util/array"
 import { useSync } from "@/context/sync"
@@ -58,8 +58,7 @@ function StatusIcon(props: { status: Status }) {
       <div class="relative w-[18px] h-[18px] flex-shrink-0 mt-px">
         <div class="absolute inset-0 rounded-full border-2 border-[var(--v2-icon-icon-accent)] opacity-70" />
         <div
-          class="absolute inset-[3px] rounded-full bg-[var(--v2-icon-icon-accent)]"
-          style={{ animation: "summary-status-pulse 1.4s ease-in-out infinite" }}
+          class="summary-status-pulse absolute inset-[3px] rounded-full bg-[var(--v2-icon-icon-accent)]"
         />
       </div>
     )
@@ -82,24 +81,27 @@ function StatusIcon(props: { status: Status }) {
 function Section(props: {
   title: string
   badge?: string
-  action?: any
+  action?: JSX.Element
   defaultOpen?: boolean
-  children: any
+  children: JSX.Element
 }) {
   const [open, setOpen] = createSignal(props.defaultOpen ?? true)
+  const contentId = createUniqueId()
   return (
-    <div class="rounded-[10px] border border-[var(--v2-border-border-muted)] bg-[var(--v2-background-bg-layer-01)]/60 backdrop-blur-[8px] shadow-[var(--v2-elevation-raised)] overflow-hidden">
+    <div class="rounded-lg border border-[var(--v2-border-border-muted)] bg-[var(--v2-background-bg-layer-01)]/60 backdrop-blur-[8px] shadow-[var(--v2-elevation-raised)] overflow-hidden">
       <div class="flex items-center gap-1.5 pl-1.5 pr-2 h-9">
         <button
           type="button"
           onClick={() => setOpen(!open())}
-          class="flex items-center gap-1.5 flex-1 min-w-0 text-left group h-full"
+          aria-expanded={open()}
+          aria-controls={contentId}
+          class="flex items-center gap-1.5 flex-1 min-w-0 text-left group h-full rounded-md focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--v2-border-border-focus)]"
         >
           <Icon
             name={open() ? "chevron-down" : "chevron-right"}
             class="w-3.5 h-3.5 shrink-0 text-v2-icon-icon-muted group-hover:text-v2-icon-icon-base transition-colors"
           />
-          <span class="text-[13px] font-[530] leading-5 tracking-[-0.01px] text-v2-text-text-base truncate">
+          <span class="text-[13px] font-[530] leading-5 text-v2-text-text-base truncate">
             {props.title}
           </span>
         </button>
@@ -110,7 +112,9 @@ function Section(props: {
         </Show>
         <Show when={props.action}>{props.action}</Show>
       </div>
-      <Show when={open()}>{props.children}</Show>
+      <Show when={open()}>
+        <div id={contentId}>{props.children}</div>
+      </Show>
     </div>
   )
 }
@@ -154,7 +158,7 @@ function TodoSection(props: { todos: () => Todo[] }) {
                   </div>
                   <span
                     classList={{
-                      "text-[13px] font-[440] leading-[1.45] tracking-[-0.01px] flex-1 min-w-0 break-words": true,
+                      "text-[13px] font-[440] leading-[1.45] flex-1 min-w-0 break-words": true,
                       "text-v2-text-text-base": !isDone && !cancelled,
                       "text-v2-text-text-faint line-through decoration-[var(--v2-border-border-strong)] decoration-[1.5px]":
                         isDone,
@@ -179,6 +183,8 @@ function ContextSection() {
   const providers = useProviders()
   const sdk = useSDK()
   const { params } = useSessionLayout()
+  const [summarizing, setSummarizing] = createSignal(false)
+  const [summaryError, setSummaryError] = createSignal("")
 
   const info = createMemo(() => (params.id ? sync().session.get(params.id) : undefined))
   const messages = createMemo<Message[]>(() => {
@@ -235,15 +241,20 @@ function ContextSection() {
   const summarize = async () => {
     const id = params.id
     const c = ctx()
-    if (!id || !c) return
+    if (!id || !c || summarizing()) return
+    setSummarizing(true)
+    setSummaryError("")
     try {
       await sdk().client.session.summarize({
         sessionID: id,
         modelID: c.message.modelID,
         providerID: c.message.providerID,
       })
-    } catch (e) {
-      console.error("summarize failed", e)
+    } catch (error) {
+      console.error("summarize failed", error)
+      setSummaryError(error instanceof Error ? error.message : "上下文压缩失败，请稍后重试")
+    } finally {
+      setSummarizing(false)
     }
   }
 
@@ -255,11 +266,14 @@ function ContextSection() {
         <Show when={hasData()}>
           <button
             type="button"
-            onClick={summarize}
+            onClick={() => void summarize()}
             title="压缩上下文"
-            class="h-6 px-2 shrink-0 rounded-md text-[11px] font-[500] leading-4 text-[var(--v2-text-text-accent)] border border-[var(--v2-border-border-base)] transition-colors hover:bg-[var(--v2-overlay-simple-overlay-hover)]"
+            aria-label={summarizing() ? "正在压缩上下文" : "压缩上下文"}
+            aria-busy={summarizing()}
+            disabled={summarizing()}
+            class="h-7 px-2.5 shrink-0 rounded-md text-[11px] font-[500] leading-4 text-[var(--v2-text-text-accent)] border border-[var(--v2-border-border-base)] transition-colors hover:bg-[var(--v2-overlay-simple-overlay-hover)] active:bg-[var(--v2-overlay-simple-overlay-pressed)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-border-border-focus)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            压缩
+            {summarizing() ? "压缩中" : "压缩"}
           </button>
         </Show>
       }
@@ -273,6 +287,14 @@ function ContextSection() {
         }
       >
         <div class="flex flex-col gap-3 px-2.5 pb-2.5">
+          <Show when={summaryError()}>
+            <div
+              class="px-2.5 py-2 rounded-md border border-[var(--v2-state-border-danger)] bg-[var(--v2-state-bg-danger)] text-[11px] leading-4 text-[var(--v2-state-fg-danger)]"
+              role="alert"
+            >
+              {summaryError()}
+            </div>
+          </Show>
           {/* 进度条 */}
           <div class="flex flex-col gap-1.5">
             <div class="h-1.5 rounded-full bg-[var(--v2-overlay-simple-overlay-hover)] overflow-hidden flex">

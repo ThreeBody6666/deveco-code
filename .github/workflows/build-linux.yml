@@ -1,0 +1,102 @@
+name: build-linux
+
+on:
+  push:
+    branches:
+      - linux-build
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "Build channel (dev / beta / prod)"
+        required: false
+        type: choice
+        default: dev
+        options:
+          - dev
+          - beta
+          - prod
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    name: Build Linux (x64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Install packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends rpm
+      - name: Resolve channel
+        id: channel
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.channel }}" ]; then
+            echo "channel=${{ inputs.channel }}" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "channel=prod" >> "$GITHUB_OUTPUT"
+          else
+            echo "channel=dev" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Prepare desktop package
+        run: bun ./scripts/prepare.ts
+        working-directory: packages/desktop
+        env:
+          DEVECO_CHANNEL: ${{ steps.channel.outputs.channel }}
+      - name: Build desktop
+        run: bun run build
+        working-directory: packages/desktop
+        env:
+          DEVECO_CHANNEL: ${{ steps.channel.outputs.channel }}
+      - name: Package with electron-builder
+        run: bunx electron-builder --linux --x64 --publish never --config electron-builder.config.ts
+        working-directory: packages/desktop
+        timeout-minutes: 60
+        env:
+          DEVECO_CHANNEL: ${{ steps.channel.outputs.channel }}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: deveco-desktop-linux-x64
+          path: |
+            packages/desktop/dist/*.AppImage
+            packages/desktop/dist/*.deb
+            packages/desktop/dist/*.rpm
+            packages/desktop/dist/latest-linux*.yml
+          if-no-files-found: error
+
+  release:
+    name: Attach to GitHub Release
+    needs: build-linux
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: deveco-desktop-linux-x64
+          path: /tmp/desktop
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(/tmp/desktop/*.{AppImage,deb,rpm,yml})
+          if (( ${#files[@]} == 0 )); then
+            echo "No Linux release assets found"
+            exit 1
+          fi
+          gh release upload "$GITHUB_REF_NAME" "${files[@]}" --clobber --repo "$GITHUB_REPOSITORY"

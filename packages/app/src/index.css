@@ -16,6 +16,126 @@
 }
 
 @layer components {
+  :root {
+    --app-motion-press: 90ms;
+    --app-motion-fast: 120ms;
+    --app-motion-base: 180ms;
+    --app-motion-slow: 240ms;
+    --app-motion-exit: 100ms;
+    --app-motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --app-motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes app-surface-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .home-workspace {
+    position: relative;
+    background: var(--v2-background-bg-base);
+    isolation: isolate;
+  }
+
+  .home-workspace::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    z-index: -1;
+    content: "";
+    pointer-events: none;
+    background: color-mix(in srgb, var(--v2-border-border-muted) 24%, transparent);
+  }
+
+  .home-workspace-grid > aside,
+  .home-content {
+    animation: app-surface-enter var(--app-motion-slow) var(--app-motion-ease-out) both;
+  }
+
+  .home-content {
+    animation-delay: 35ms;
+  }
+
+  .home-workbench-kicker {
+    text-transform: uppercase;
+  }
+
+  .home-quick-action {
+    box-shadow: inset 0 1px 0 color-mix(in srgb, white 4%, transparent);
+  }
+
+  .home-quick-action:active:not(:disabled) {
+    transform: translateY(1px) scale(0.995);
+  }
+
+  [data-component="home-session-search-panel"] {
+    transform-origin: 50% 0;
+    animation: home-search-panel-in var(--app-motion-base) var(--app-motion-ease-out) both;
+  }
+
+  .home-session-skeleton-row {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .home-session-skeleton-row::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+    background: linear-gradient(
+      100deg,
+      transparent 20%,
+      color-mix(in srgb, var(--v2-background-bg-layer-03) 72%, transparent) 48%,
+      transparent 76%
+    );
+    transform: translateX(-110%);
+    animation: home-skeleton-sheen 1.45s ease-in-out infinite;
+  }
+
+  @keyframes home-search-panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(-3px) scale(0.992);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes home-skeleton-sheen {
+    55%,
+    100% {
+      transform: translateX(110%);
+    }
+  }
+
+  .home-workbench-stat {
+    animation: app-surface-enter var(--app-motion-base) var(--app-motion-ease-out) both;
+  }
+
+  .home-workbench-stat:nth-child(2) {
+    animation-delay: 25ms;
+  }
+
+  .home-workbench-stat:nth-child(3) {
+    animation-delay: 50ms;
+  }
+
+  .home-workbench-stat:nth-child(4) {
+    animation-delay: 75ms;
+  }
+
   @keyframes summary-status-pulse {
     0%,
     100% {
@@ -27,6 +147,10 @@
       opacity: 0.45;
       transform: scale(0.8);
     }
+  }
+
+  .summary-status-pulse {
+    animation: summary-status-pulse 1.4s ease-in-out infinite;
   }
 
   @keyframes session-progress-whip {
@@ -164,6 +288,29 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    [data-component="menu-v2-content"],
+    [data-component="dropdown-menu-content"],
+    [data-component="dropdown-menu-sub-content"],
+    [data-component="popover-content"] {
+      animation: none !important;
+    }
+
+    .home-workspace-grid > aside,
+    .home-content,
+    .home-workbench-stat,
+    [data-component="home-session-search-panel"],
+    .home-session-skeleton-row::after {
+      animation: none;
+    }
+
+    .home-quick-action {
+      transition-duration: 0ms;
+    }
+
+    .summary-status-pulse {
+      animation: none;
+    }
+
     [data-slot="titlebar-update-loader"] {
       animation: none;
     }
