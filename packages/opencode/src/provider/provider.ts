@@ -1076,14 +1076,13 @@ export const ConfigProvidersResult = Schema.Struct({
 })
 export type ConfigProvidersResult = Types.DeepMutable<Schema.Schema.Type<typeof ConfigProvidersResult>>
 
-export function toPublicInfo(provider: Info): Info {
-  return JSON.parse(
-    JSON.stringify(provider, (_, value) => {
-      if (typeof value === "function" || typeof value === "symbol" || value === undefined) return undefined
-      if (typeof value === "bigint") return value.toString()
-      return value
-    }),
-  )
+export function toPublicInfo<T>(provider: T): T {
+  const serialized = JSON.stringify(provider, (_, value) => {
+    if (typeof value === "function" || typeof value === "symbol" || value === undefined) return undefined
+    if (typeof value === "bigint") return value.toString()
+    return value
+  })
+  return serialized === undefined ? serialized : JSON.parse(serialized)
 }
 
 export function defaultModelIDs<T extends { models: Record<string, { id: string }> }>(providers: Record<string, T>) {
@@ -1316,7 +1315,7 @@ export const layer = Layer.effect(
         const bridge = yield* EffectBridge.make()
         const cfg = yield* config.get()
         const modelsDev = yield* modelsDevSvc.get()
-        const catalog = mapValues(modelsDev, fromModelsDevProvider)
+        const catalog = pickBy(mapValues(modelsDev, fromModelsDevProvider), (provider): provider is Info => provider !== undefined)
         const database = mapValues(catalog, toPublicInfo)
 
         const providers: Record<ProviderV2.ID, Info> = {} as Record<ProviderV2.ID, Info>

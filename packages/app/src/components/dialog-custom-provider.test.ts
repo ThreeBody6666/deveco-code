@@ -1,9 +1,35 @@
 import { describe, expect, test } from "bun:test"
-import { validateCustomProvider } from "./dialog-custom-provider-form"
+import { customProviderForm, validateCustomProvider } from "./dialog-custom-provider-form"
 
 const t = (key: string) => key
 
 describe("validateCustomProvider", () => {
+  test("initializes an edit form from a saved custom provider", () => {
+    expect(
+      customProviderForm({
+        providerID: "custom-provider",
+        config: {
+          name: "Custom Provider",
+          options: {
+            baseURL: "https://api.example.com",
+            headers: { "X-Test": "enabled" },
+          },
+          models: {
+            "model-a": { name: "Model A" },
+          },
+        },
+      }),
+    ).toMatchObject({
+      providerID: "custom-provider",
+      name: "Custom Provider",
+      baseURL: "https://api.example.com",
+      apiKey: "",
+      models: [{ id: "model-a", name: "Model A" }],
+      headers: [{ key: "X-Test", value: "enabled" }],
+      err: {},
+    })
+  })
+
   test("builds trimmed config payload", () => {
     const result = validateCustomProvider({
       form: {

@@ -174,9 +174,24 @@ const SettingsProvidersContent: Component = () => {
                         </span>
                       }
                     >
-                      <Button size="large" variant="ghost" onClick={() => void disconnect(item.id, item.name)}>
-                        {language.t("common.disconnect")}
-                      </Button>
+                      <div class="flex items-center gap-2">
+                        <Show when={isConfigCustom(item.id)}>
+                          <Button
+                            size="large"
+                            variant="ghost"
+                            onClick={() => {
+                              const config = serverSync().data.config.provider?.[item.id]
+                              if (!config) return
+                              dialog.show(() => <DialogCustomProvider back="close" provider={{ providerID: item.id, config }} />)
+                            }}
+                          >
+                            {language.t("common.edit")}
+                          </Button>
+                        </Show>
+                        <Button size="large" variant="ghost" onClick={() => void disconnect(item.id, item.name)}>
+                          {language.t("common.disconnect")}
+                        </Button>
+                      </div>
                     </Show>
                   </div>
                 )}

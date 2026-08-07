@@ -12,11 +12,19 @@ import { Link } from "@/components/link"
 import { useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
 import { useLanguage } from "@/context/language"
-import { type FormState, headerRow, modelRow, validateCustomProvider } from "./dialog-custom-provider-form"
+import {
+  customProviderForm,
+  type EditableCustomProvider,
+  type FormState,
+  headerRow,
+  modelRow,
+  validateCustomProvider,
+} from "./dialog-custom-provider-form"
 import { DialogSelectProvider } from "./dialog-select-provider"
 
 type Props = {
   back?: "providers" | "close"
+  provider?: EditableCustomProvider
 }
 
 export function DialogCustomProvider(props: Props) {
@@ -25,15 +33,7 @@ export function DialogCustomProvider(props: Props) {
   const serverSDK = useServerSDK()
   const language = useLanguage()
 
-  const [form, setForm] = createStore<FormState>({
-    providerID: "",
-    name: "",
-    baseURL: "",
-    apiKey: "",
-    models: [modelRow()],
-    headers: [headerRow()],
-    err: {},
-  })
+  const [form, setForm] = createStore<FormState>(customProviderForm(props.provider))
 
   const goBack = () => {
     if (props.back === "close") {
@@ -106,7 +106,9 @@ export function DialogCustomProvider(props: Props) {
       form,
       t: language.t,
       disabledProviders: serverSync().data.config.disabled_providers ?? [],
-      existingProviderIDs: new Set(serverSync().data.provider.all.keys()),
+      existingProviderIDs: new Set(
+        [...serverSync().data.provider.all.keys()].filter((id) => id !== props.provider?.providerID),
+      ),
     })
     batch(() => {
       setForm("err", output.err)
@@ -198,6 +200,7 @@ export function DialogCustomProvider(props: Props) {
               description={language.t("provider.custom.field.providerID.description")}
               value={form.providerID}
               onChange={(v) => setField("providerID", v)}
+              disabled={Boolean(props.provider)}
               validationState={form.err.providerID ? "invalid" : undefined}
               error={form.err.providerID}
             />

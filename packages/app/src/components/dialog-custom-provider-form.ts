@@ -41,11 +41,48 @@ export type FormState = {
   }
 }
 
+export type EditableCustomProvider = {
+  providerID: string
+  config: {
+    name?: string
+    options?: {
+      baseURL?: string
+      headers?: Record<string, string>
+    }
+    models?: Record<string, { name?: string }>
+  }
+}
+
 type ValidateArgs = {
   form: FormState
   t: Translator
   disabledProviders: string[]
   existingProviderIDs: Set<string>
+}
+
+export function customProviderForm(provider?: EditableCustomProvider): FormState {
+  const models = Object.entries(provider?.config.models ?? {}).map(([id, model]) => ({
+    row: nextRow(),
+    id,
+    name: model.name ?? id,
+    err: {},
+  }))
+  const headers = Object.entries(provider?.config.options?.headers ?? {}).map(([key, value]) => ({
+    row: nextRow(),
+    key,
+    value,
+    err: {},
+  }))
+
+  return {
+    providerID: provider?.providerID ?? "",
+    name: provider?.config.name ?? "",
+    baseURL: provider?.config.options?.baseURL ?? "",
+    apiKey: "",
+    models: models.length ? models : [modelRow()],
+    headers: headers.length ? headers : [headerRow()],
+    err: {},
+  }
 }
 
 export function validateCustomProvider(input: ValidateArgs) {
