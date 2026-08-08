@@ -2,15 +2,9 @@ import type { Todo } from "@opencode-ai/sdk/v2"
 import { For, Show, createMemo } from "solid-js"
 import { Checkbox } from "@opencode-ai/ui/checkbox"
 import { useLanguage } from "@/context/language"
+import { displayTodoOrder } from "./session-todo-order"
 
 type Status = Todo["status"]
-
-const STATUS_ORDER: Record<Status, number> = {
-  in_progress: 0,
-  pending: 1,
-  completed: 2,
-  cancelled: 3,
-}
 
 const STATUS_LABEL: Record<Status, string> = {
   in_progress: "进行中",
@@ -33,14 +27,6 @@ export function SessionTodoTab(props: { todos: () => Todo[] }) {
   const done = createMemo(() => props.todos().filter((t) => t.status === "completed").length)
   const inProgress = createMemo(() => props.todos().filter((t) => t.status === "in_progress").length)
   const percent = createMemo(() => (total() === 0 ? 0 : Math.round((done() / total()) * 100)))
-
-  const sorted = createMemo(() =>
-    [...props.todos()].sort((a, b) => {
-      const diff = STATUS_ORDER[a.status] - STATUS_ORDER[b.status]
-      if (diff !== 0) return diff
-      return 0
-    }),
-  )
 
   return (
     <div class="flex flex-col h-full overflow-hidden">
@@ -85,7 +71,7 @@ export function SessionTodoTab(props: { todos: () => Todo[] }) {
           }
         >
           <ul class="flex flex-col divide-y divide-gray-50 dark:divide-gray-900">
-            <For each={sorted()}>
+            <For each={displayTodoOrder(props.todos())}>
               {(todo) => {
                 const done = todo.status === "completed"
                 const cancelled = todo.status === "cancelled"

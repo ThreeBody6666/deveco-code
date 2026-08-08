@@ -5,6 +5,7 @@ import { createStore } from "solid-js/store"
 import { usePlatform } from "@/context/platform"
 import { useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
+import { useSettings } from "@/context/settings"
 import { SettingsListV2 } from "./parts/list"
 import "./settings-v2.css"
 
@@ -15,6 +16,7 @@ export const SettingsCapabilitiesV2: Component = () => {
   const serverSDK = useServerSDK()
   const serverSync = useServerSync()
   const platform = usePlatform()
+  const settings = useSettings()
   const [state, setState] = createStore({
     enabled: true,
     provider: "exa" as "exa" | "parallel" | "bing" | "tavily",
@@ -28,6 +30,10 @@ export const SettingsCapabilitiesV2: Component = () => {
     tavilyKey: "",
     bingEndpoint: "https://api.bing.microsoft.com/v7.0/search",
     saving: false,
+    mobileDeviceID: "",
+    mobileEndpoint: "",
+    mobileAutoReconnect: false,
+    mobileSaved: false,
   })
   const [skills, { refetch }] = createResource(async () => {
     const response = await serverSDK().client.app.skills()
@@ -36,6 +42,12 @@ export const SettingsCapabilitiesV2: Component = () => {
   const managedPaths = createMemo(() => serverSync().data.config.skills?.paths ?? [])
 
   onMount(() => {
+    const mobile = settings.mobile.preference()
+    setState({
+      mobileDeviceID: mobile.preferredDeviceID,
+      mobileEndpoint: mobile.endpoint,
+      mobileAutoReconnect: mobile.autoReconnect,
+    })
     const saved = localStorage.getItem(SEARCH_SETTINGS_ID)
     if (!saved) return
     try {
@@ -100,6 +112,25 @@ export const SettingsCapabilitiesV2: Component = () => {
     }
   }
 
+  const saveMobileDevice = () => {
+    settings.mobile.save({
+      preferredDeviceID: state.mobileDeviceID,
+      endpoint: state.mobileEndpoint,
+      autoReconnect: state.mobileAutoReconnect,
+    })
+    setState("mobileSaved", true)
+  }
+
+  const clearMobileDevice = () => {
+    settings.mobile.clear()
+    setState({
+      mobileDeviceID: "",
+      mobileEndpoint: "",
+      mobileAutoReconnect: false,
+      mobileSaved: false,
+    })
+  }
+
   return (
     <>
       <div class="settings-v2-tab-header settings-v2-capabilities-header">
@@ -146,6 +177,66 @@ export const SettingsCapabilitiesV2: Component = () => {
                 )}
               </For>
             </Show>
+          </SettingsListV2>
+        </section>
+
+        <section class="settings-v2-section">
+          <div class="settings-v2-capabilities-section-heading">
+            <div>
+              <h3 class="settings-v2-section-title">手机连接</h3>
+              <p>保存默认设备 ID 后，后续连接会优先恢复到这台设备。设备离线时保留配置，重新上线后自动重连。</p>
+            </div>
+          </div>
+          <SettingsListV2>
+            <label class="settings-v2-search-key">
+              <span>设备 ID</span>
+              <input
+                type="text"
+                autocomplete="off"
+                placeholder="连接成功后由手机端提供"
+                value={state.mobileDeviceID}
+                onInput={(event) => {
+                  setState("mobileDeviceID", event.currentTarget.value)
+                  setState("mobileSaved", false)
+                }}
+              />
+            </label>
+            <label class="settings-v2-search-key">
+              <span>连接端点（可选）</span>
+              <input
+                type="url"
+                autocomplete="off"
+                placeholder="例如 https://192.168.1.8:8443"
+                value={state.mobileEndpoint}
+                onInput={(event) => {
+                  setState("mobileEndpoint", event.currentTarget.value)
+                  setState("mobileSaved", false)
+                }}
+              />
+            </label>
+            <label class="settings-v2-capabilities-switch">
+              <input
+                type="checkbox"
+                checked={state.mobileAutoReconnect}
+                disabled={!state.mobileDeviceID.trim()}
+                onChange={(event) => {
+                  setState("mobileAutoReconnect", event.currentTarget.checked)
+                  setState("mobileSaved", false)
+                }}
+              />
+              <span>启动后自动重连</span>
+            </label>
+            <div class="settings-v2-capabilities-actions">
+              <span class="settings-v2-capability-status-badge">
+                {state.mobileSaved || settings.mobile.preference().preferredDeviceID ? "已保存" : "未配置"}
+              </span>
+              <Show when={settings.mobile.preference().preferredDeviceID}>
+                <ButtonV2 size="normal" variant="ghost-muted" onClick={clearMobileDevice}>清除</ButtonV2>
+              </Show>
+              <ButtonV2 size="normal" variant="neutral" onClick={saveMobileDevice} disabled={!state.mobileDeviceID.trim()}>
+                保存设备
+              </ButtonV2>
+            </div>
           </SettingsListV2>
         </section>
 

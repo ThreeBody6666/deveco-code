@@ -12,7 +12,9 @@ import {
   directoryAcceptKey,
   isDirectoryAutoAccepting,
   autoRespondsPermission,
+  shouldAutoRespondPermission,
 } from "./permission-auto-respond"
+import { useSettings } from "./settings"
 
 type PermissionRespondFn = (input: {
   sessionID: string
@@ -51,6 +53,7 @@ export const { use: usePermission, provider: PermissionProvider } = createSimple
     const params = useParams()
     const serverSDK = useServerSDK()
     const serverSync = useServerSync()
+    const settings = useSettings()
 
     const permissionsEnabled = createMemo(() => {
       const directory = decode64(params.dir)
@@ -142,17 +145,19 @@ export const { use: usePermission, provider: PermissionProvider } = createSimple
     }
 
     function isAutoAccepting(sessionID: string, directory?: string) {
+      if (settings.permissions.autoApprove()) return true
       const session = directory ? serverSync().child(directory, { bootstrap: false })[0].session : []
       return autoRespondsPermission(store.autoAccept, session, { sessionID }, directory)
     }
 
     function isAutoAcceptingDirectory(directory: string) {
+      if (settings.permissions.autoApprove()) return true
       return isDirectoryAutoAccepting(store.autoAccept, directory)
     }
 
     function shouldAutoRespond(permission: PermissionRequest, directory?: string) {
       const session = directory ? serverSync().child(directory, { bootstrap: false })[0].session : []
-      return autoRespondsPermission(store.autoAccept, session, permission, directory)
+      return shouldAutoRespondPermission(settings.permissions.autoApprove(), store.autoAccept, session, permission, directory)
     }
 
     function bumpEnableVersion(sessionID: string, directory?: string) {
@@ -238,6 +243,24 @@ export const { use: usePermission, provider: PermissionProvider } = createSimple
         }),
       )
     }
+
+    // A global switch must also release requests that arrived before it was enabled.
+    createEffect(() => {
+      if (!ready() || !settings.permissions.autoApprove()) return
+      const directory = decode64(params.dir)
+      if (!directory) return
+
+      serverSDK()
+        .client.permission.list({ directory })
+        .then((x) => {
+          if (!settings.permissions.autoApprove()) return
+          for (const perm of x.data ?? []) {
+            if (!perm?.id || !shouldAutoRespond(perm, directory)) continue
+            respondOnce(perm, directory)
+          }
+        })
+        .catch(() => undefined)
+    })
 
     return {
       ready,

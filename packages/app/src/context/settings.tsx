@@ -2,6 +2,11 @@ import { createStore, reconcile } from "solid-js/store"
 import { createEffect, createMemo } from "solid-js"
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { persisted } from "@/utils/persist"
+import {
+  defaultMobileDevicePreference,
+  normalizeMobileDevicePreference,
+  type MobileDevicePreference,
+} from "@/context/mobile-device-preference"
 
 export interface NotificationSettings {
   agent: boolean
@@ -47,6 +52,7 @@ export interface Settings {
   }
   notifications: NotificationSettings
   sounds: SoundSettings
+  mobile: MobileDevicePreference
 }
 
 export const monoDefault = "System Mono"
@@ -142,6 +148,7 @@ const defaultSettings: Settings = {
     errorsEnabled: true,
     errors: "nope-03",
   },
+  mobile: defaultMobileDevicePreference,
 }
 
 function withFallback<T>(read: () => T | undefined, fallback: T) {
@@ -341,6 +348,18 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         errors: withFallback(() => store.sounds?.errors, defaultSettings.sounds.errors),
         setErrors(value: string) {
           setStore("sounds", "errors", value)
+        },
+      },
+      mobile: {
+        preference: withFallback(
+          () => (store.mobile ? normalizeMobileDevicePreference(store.mobile) : undefined),
+          defaultMobileDevicePreference,
+        ),
+        save(value: Partial<MobileDevicePreference>) {
+          setStore("mobile", normalizeMobileDevicePreference({ ...store.mobile, ...value }))
+        },
+        clear() {
+          setStore("mobile", defaultMobileDevicePreference)
         },
       },
     }

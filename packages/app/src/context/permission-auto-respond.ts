@@ -49,3 +49,13 @@ export function autoRespondsPermission(
     .find((item): item is boolean => item !== undefined)
   return value ?? false
 }
+
+export function shouldAutoRespondPermission(
+  autoApprove: boolean,
+  autoAccept: Record<string, boolean>,
+  session: { id: string; parentID?: string }[],
+  permission: { sessionID: string },
+  directory?: string,
+) {
+  return autoApprove || autoRespondsPermission(autoAccept, session, permission, directory)
+}

@@ -12,15 +12,9 @@ import {
   type SessionContextBreakdownKey,
 } from "@/components/session/session-context-breakdown"
 import { buildSessionContextBudget } from "@/components/session/session-context-budget"
+import { displayTodoOrder } from "./session-todo-order"
 
 type Status = Todo["status"]
-
-const STATUS_ORDER: Record<Status, number> = {
-  in_progress: 0,
-  pending: 1,
-  completed: 2,
-  cancelled: 3,
-}
 
 const BREAKDOWN_COLOR: Record<SessionContextBreakdownKey, string> = {
   system: "var(--syntax-info)",
@@ -56,10 +50,10 @@ function StatusIcon(props: { status: Status }) {
   }
   if (props.status === "in_progress") {
     return (
-      <div class="relative w-[18px] h-[18px] flex-shrink-0 mt-px">
-        <div class="absolute inset-0 rounded-full border-2 border-[var(--v2-icon-icon-accent)] opacity-70" />
+      <div class="relative grid size-[18px] place-items-center flex-shrink-0 mt-px">
+        <div class="absolute size-[18px] rounded-full border-2 border-[var(--v2-icon-icon-accent)] opacity-70" />
         <div
-          class="summary-status-pulse absolute inset-[3px] rounded-full bg-[var(--v2-icon-icon-accent)]"
+          class="summary-status-pulse relative size-[8px] rounded-full bg-[var(--v2-icon-icon-accent)]"
         />
       </div>
     )
@@ -121,16 +115,13 @@ function Section(props: {
 }
 
 function TodoSection(props: { todos: () => Todo[] }) {
-  const sorted = createMemo(() =>
-    [...props.todos()].sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]),
-  )
   const done = createMemo(() => props.todos().filter((t) => t.status === "completed").length)
   const total = createMemo(() => props.todos().length)
 
   return (
     <Section title="待办" badge={total() > 0 ? `${done()}/${total()}` : undefined}>
       <Show
-        when={sorted().length > 0}
+        when={props.todos().length > 0}
         fallback={
           <div class="mx-2.5 mb-2.5 px-3 py-3.5 rounded-lg border border-dashed border-[var(--v2-border-border-muted)] text-[12px] leading-4 text-v2-text-text-faint text-center">
             AI 拆分任务时会显示在这里
@@ -138,7 +129,7 @@ function TodoSection(props: { todos: () => Todo[] }) {
         }
       >
         <ul class="flex flex-col gap-px px-2 pb-2">
-          <For each={sorted()}>
+          <For each={displayTodoOrder(props.todos())}>
             {(todo) => {
               const isDone = todo.status === "completed"
               const cancelled = todo.status === "cancelled"
@@ -229,7 +220,7 @@ function ContextSection() {
   const budget = createMemo(() => {
     const c = ctx()
     return buildSessionContextBudget({
-      total: c?.total ?? 0,
+      total: c?.input ?? 0,
       limit: c?.limit,
       breakdown: breakdown(),
     })
@@ -238,13 +229,13 @@ function ContextSection() {
   const percentLabel = createMemo(() => {
     const usage = budget().usage
     if (usage === null) return "--"
-    if (usage === 0 && (ctx()?.total ?? 0) > 0) return "<1"
+    if (usage === 0 && (ctx()?.input ?? 0) > 0) return "<1"
     return String(usage)
   })
 
   const visibleSegments = createMemo(() => (detailsOpen() ? budget().segments : budget().segments.slice(0, 3)))
 
-  const hasData = createMemo(() => !!ctx() && (ctx()?.total ?? 0) > 0)
+  const hasData = createMemo(() => !!ctx() && (ctx()?.input ?? 0) > 0)
 
   const summarize = async () => {
     const id = params.id
@@ -307,7 +298,7 @@ function ContextSection() {
             <div class="flex items-baseline justify-between gap-2">
               <div class="flex items-baseline gap-1 min-w-0">
                 <span class="text-[15px] font-[600] leading-5 text-v2-text-text-base font-mono tabular-nums">
-                  {formatTokens(ctx()!.total)}
+                  {formatTokens(ctx()!.input)}
                 </span>
                 <Show when={ctx()?.limit}>
                   <span class="text-[11px] font-mono tabular-nums text-v2-text-text-faint">
@@ -327,6 +318,11 @@ function ContextSection() {
               >
                 {percentLabel()}%
               </span>
+            </div>
+
+            <div class="flex items-center justify-between gap-2 text-[11px] leading-4 text-v2-text-text-faint">
+              <span>本轮消耗</span>
+              <span class="font-mono tabular-nums">{formatTokens(ctx()!.total)} Token</span>
             </div>
 
             <Show when={budget().usage !== null}>

@@ -1,7 +1,7 @@
 {
   "name": "@opencode-ai/desktop",
   "private": true,
-  "version": "1.17.16",
+  "version": "1.17.17",
   "type": "module",
   "license": "MIT",
   "homepage": "https://opencode.ai",
@@ -10,6 +10,8 @@
     "email": "hello@opencode.ai"
   },
   "scripts": {
+    "generate:icons": "bun scripts/generate-icons.ts",
+    "verify:icons": "bun scripts/verify-icons.ts",
     "typecheck": "tsgo -b",
     "predev": "bun ./scripts/predev.ts",
     "dev": "electron-vite dev",

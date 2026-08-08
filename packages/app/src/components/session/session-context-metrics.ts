@@ -72,7 +72,7 @@ const build = (messages: Message[] = [], providers: Provider[] = []): Metrics =>
       cacheRead: message.tokens.cache.read,
       cacheWrite: message.tokens.cache.write,
       total,
-      usage: limit ? Math.round((total / limit) * 100) : null,
+      usage: limit ? Math.round((message.tokens.input / limit) * 100) : null,
     },
   }
 }

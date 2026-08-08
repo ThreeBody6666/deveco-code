@@ -1811,6 +1811,29 @@ describe("ProviderTransform.message - empty image handling", () => {
     expect(result[0].content[1]).toEqual({ type: "image", image: `data:image/png;base64,${validBase64}` })
   })
 
+  test("should replace images for models without image input support", () => {
+    const msgs = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Summarize the screenshot" },
+          { type: "image", image: "data:image/png;base64,AAECAw==" },
+        ],
+      },
+    ] as any[]
+
+    const result = ProviderTransform.message(
+      msgs,
+      { ...mockModel, capabilities: { ...mockModel.capabilities, input: { ...mockModel.capabilities.input, image: false } } },
+      {},
+    )
+
+    expect(result[0].content[1]).toEqual({
+      type: "text",
+      text: "ERROR: Cannot read image (this model does not support image input). Inform the user.",
+    })
+  })
+
   test("should handle mixed valid and empty images", () => {
     const validBase64 =
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="

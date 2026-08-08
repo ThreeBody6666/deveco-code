@@ -38,7 +38,7 @@ const user = (id: string) => {
 }
 
 describe("getSessionContextMetrics", () => {
-  test("computes totals and usage from latest assistant with tokens", () => {
+  test("separates token usage from the latest request context", () => {
     const messages = [
       user("u1"),
       assistant("a1", { input: 0, output: 0, reasoning: 0, read: 0, write: 0 }, 0.5),
@@ -61,8 +61,9 @@ describe("getSessionContextMetrics", () => {
 
     expect(metrics.totalCost).toBe(1.75)
     expect(metrics.context?.message.id).toBe("a2")
+    expect(metrics.context?.input).toBe(300)
     expect(metrics.context?.total).toBe(500)
-    expect(metrics.context?.usage).toBe(50)
+    expect(metrics.context?.usage).toBe(30)
     expect(metrics.context?.providerLabel).toBe("OpenAI")
     expect(metrics.context?.modelLabel).toBe("GPT-4.1")
   })
