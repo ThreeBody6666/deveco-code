@@ -289,6 +289,44 @@ async function handleRequest(
       sendJson(res, data.status, data.body)
       return
     }
+    // Long poll replacing the mobile client's fixed 5s interval. Holds the request
+    // until the session gains a message newer than `since`, or the wait budget ends.
+    if (path === "/bridge/events" && req.method === "GET") {
+      const sessionID = url.searchParams.get("session")
+      if (!sessionID) {
+        sendJson(res, 400, { error: "invalid_body" })
+        return
+      }
+      const since = Number.parseInt(url.searchParams.get("since") || "0", 10)
+      const data = await waitForSessionMessages(
+        deps,
+        sessionID,
+        Number.isFinite(since) ? since : 0,
+        Number.parseInt(url.searchParams.get("wait") || "", 10),
+        () => req.destroyed,
+      )
+      sendJson(res, data.status, data.body)
+      return
+    }
+    if (path === "/bridge/permissions" && req.method === "GET") {
+      const data = await proxySidecar(deps, "GET", "/permission")
+      sendJson(res, data.status, data.body)
+      return
+    }
+    if (path.match(/^\/bridge\/permissions\/[^/]+\/answer$/) && req.method === "POST") {
+      const id = path.split("/")[3]
+      const body = await readJson(req)
+      if (!body || typeof body.reply !== "string") {
+        sendJson(res, 400, { error: "invalid_body" })
+        return
+      }
+      const data = await proxySidecar(deps, "POST", `/permission/${encodeURIComponent(id)}/reply`, {
+        reply: body.reply,
+        message: typeof body.message === "string" ? body.message : undefined,
+      })
+      sendJson(res, data.status, data.body)
+      return
+    }
     if (path === "/bridge/projects" && req.method === "GET") {
       const data = await proxySidecar(deps, "GET", "/project")
       sendJson(res, data.status, data.body)
@@ -343,6 +381,36 @@ async function proxySidecar(
   } catch (err) {
     return { status: 502, body: { error: "sidecar_unreachable", detail: String(err) } }
   }
+}
+
+// Long-poll helper: repeatedly reads the session messages until one is newer than
+// `since`, so mobile clients get near-realtime updates without a WebSocket upgrade.
+async function waitForSessionMessages(
+  deps: BridgeDeps,
+  sessionID: string,
+  since: number,
+  waitSeconds: number,
+  aborted: () => boolean,
+): Promise<{ status: number; body: unknown }> {
+  const budgetMs = Math.min(Math.max(Number.isFinite(waitSeconds) ? waitSeconds : 25, 1), 55) * 1000
+  const deadline = Date.now() + budgetMs
+  while (true) {
+    const data = await proxySidecar(deps, "GET", `/session/${encodeURIComponent(sessionID)}/message`)
+    if (data.status !== 200) return data
+    const latest = latestMessageTime(data.body)
+    if (latest > since) return { status: 200, body: { latest, messages: data.body } }
+    if (aborted() || Date.now() >= deadline) return { status: 200, body: { latest: since, messages: [] } }
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
+}
+
+function latestMessageTime(body: unknown): number {
+  if (!Array.isArray(body)) return 0
+  // Sidecar returns `{ info, parts }` envelopes; older shapes are flat messages.
+  return body.reduce<number>((max, item) => {
+    const time = (item?.info?.time ?? item?.time) as { created?: number; completed?: number } | undefined
+    return Math.max(max, time?.completed ?? 0, time?.created ?? 0)
+  }, 0)
 }
 
 function getLanHostnames(): string[] {

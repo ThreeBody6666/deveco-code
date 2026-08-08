@@ -34,6 +34,29 @@
 | GET | `/bridge/sessions/:id/messages` | 是 | 代理 `GET /session/:id/message` |
 | POST | `/bridge/sessions/:id/message` | 是 | 代理 `POST /session/:id/message` |
 | GET | `/bridge/projects` | 是 | 代理 `GET /project` |
+| GET | `/bridge/events` | 是 | 消息长轮询，见下 |
+| GET | `/bridge/permissions` | 是 | 代理 `GET /permission`，待审批请求列表 |
+| POST | `/bridge/permissions/:id/answer` | 是 | 代理 `POST /permission/:id/reply` |
+
+### `GET /bridge/events`
+
+查询参数：
+
+- `session`：必填，会话 ID
+- `since`：上一轮返回的 `latest`，默认 `0`
+- `wait`：等待预算秒数，默认 `25`，取值范围 `1..55`
+
+桌面端挂起请求直到该会话出现比 `since` 更新的消息，或预算耗尽，返回：
+
+```json
+{ "latest": 1754630000000, "messages": [] }
+```
+
+`messages` 为空表示本轮无变化，客户端应立即发起下一轮。客户端读超时须大于 `wait`。
+
+### `POST /bridge/permissions/:id/answer`
+
+body：`{ "reply": "once" | "always" | "reject", "message": "可选说明" }`
 
 ## 错误响应
 
@@ -45,5 +68,4 @@
 
 ## 后续演进
 
-- v2 计划加 WebSocket 流式推送会话事件（替代 5s 轮询）
-- v2 计划加权限审批端点（`GET /bridge/permissions`, `POST /bridge/permissions/:id/answer`）
+- 长轮询（`/bridge/events`）与权限审批端点已落地；WebSocket 流式推送仍待评估，落地前长轮询即为默认实时通道
