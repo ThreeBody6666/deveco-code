@@ -1,8 +1,8 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http"
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto"
 import { networkInterfaces, tmpdir } from "node:os"
-import { writeFileSync } from "node:fs"
-import { join } from "node:path"
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { dirname, join } from "node:path"
 
 import type { ServerReadyData } from "../preload/types"
 
@@ -10,14 +10,32 @@ const BRIDGE_PORT_ENV = "DEVECO_BRIDGE_PORT"
 const DEFAULT_BRIDGE_PORT = 5757
 const PAIR_CODE_TTL_MS = 10 * 60 * 1000
 const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000
+const PROTOCOL_VERSION = 2
+// A device is reported offline once it misses this long without a heartbeat.
+const HEARTBEAT_TIMEOUT_MS = 90 * 1000
 
 type PairCode = { code: string; expiresAt: number }
-type Token = { token: string; deviceName: string; issuedAt: number; expiresAt: number }
+type Token = { token: string; deviceName: string; issuedAt: number; expiresAt: number; deviceId: string }
+
+// Persisted so a desktop restart no longer invalidates every phone's token.
+type PairedDevice = {
+  deviceId: string
+  deviceName: string
+  endpoint?: string
+  osVersion?: string
+  appVersion?: string
+  protocolVersion?: number
+  token: string
+  issuedAt: number
+  expiresAt: number
+  lastSeenAt: number
+}
 
 type BridgeDeps = {
   getSidecar: () => ServerReadyData | null
   log: (message: string, meta?: Record<string, unknown>) => void
   warn: (message: string, meta?: Record<string, unknown>) => void
+  devicesFile?: string
 }
 
 export type BridgeInfo = {
@@ -38,12 +56,26 @@ export type BridgeController = {
 export function createRemoteBridge(deps: BridgeDeps): Promise<BridgeController> {
   return new Promise((resolve, reject) => {
     const port = readPort()
+    const devices = loadDevices(deps)
     const state: {
       pair: PairCode
       tokens: Map<string, Token>
+      devices: Map<string, PairedDevice>
     } = {
       pair: generatePairCode(),
       tokens: new Map(),
+      devices,
+    }
+    // Rehydrate tokens from disk so a previously paired phone reconnects silently.
+    for (const device of devices.values()) {
+      if (device.expiresAt < Date.now()) continue
+      state.tokens.set(device.token, {
+        token: device.token,
+        deviceName: device.deviceName,
+        issuedAt: device.issuedAt,
+        expiresAt: device.expiresAt,
+        deviceId: device.deviceId,
+      })
     }
     const listeners = new Set<(info: BridgeInfo) => void>()
 
@@ -156,12 +188,43 @@ function generatePairCode(): PairCode {
   }
 }
 
-function issueToken(deviceName: string): Token {
+function issueToken(deviceName: string, deviceId: string): Token {
   return {
     token: randomBytes(24).toString("base64url"),
     deviceName: deviceName || "unknown-device",
     issuedAt: Date.now(),
     expiresAt: Date.now() + TOKEN_TTL_MS,
+    deviceId,
+  }
+}
+
+function devicesPath(deps: BridgeDeps): string {
+  return deps.devicesFile ?? join(tmpdir(), "deveco-code-devices.json")
+}
+
+function loadDevices(deps: BridgeDeps): Map<string, PairedDevice> {
+  const devices = new Map<string, PairedDevice>()
+  try {
+    const parsed = JSON.parse(readFileSync(devicesPath(deps), "utf-8")) as PairedDevice[]
+    if (!Array.isArray(parsed)) return devices
+    for (const device of parsed) {
+      if (!device?.deviceId || !device.token) continue
+      devices.set(device.deviceId, device)
+    }
+    deps.log("remote-bridge restored paired devices", { count: devices.size })
+  } catch {
+    // First run or unreadable file: start with no paired devices.
+  }
+  return devices
+}
+
+function saveDevices(deps: BridgeDeps, devices: Map<string, PairedDevice>) {
+  const file = devicesPath(deps)
+  try {
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, JSON.stringify([...devices.values()], null, 2), { encoding: "utf-8", mode: 0o600 })
+  } catch (err) {
+    deps.warn("failed to persist paired devices", { error: String(err) })
   }
 }
 
@@ -202,10 +265,9 @@ function extractToken(req: IncomingMessage): string | null {
   return token
 }
 
-function authorize(
-  req: IncomingMessage,
-  state: { tokens: Map<string, Token> },
-): Token | null {
+type BridgeState = { pair: PairCode; tokens: Map<string, Token>; devices: Map<string, PairedDevice> }
+
+function authorize(req: IncomingMessage, state: BridgeState): Token | null {
   const token = extractToken(req)
   if (!token) return null
   const record = state.tokens.get(token)
@@ -214,13 +276,16 @@ function authorize(
     state.tokens.delete(token)
     return null
   }
+  // Any authorized call doubles as liveness, so status stays fresh between heartbeats.
+  const device = state.devices.get(record.deviceId)
+  if (device) device.lastSeenAt = Date.now()
   return record
 }
 
 async function handleRequest(
   req: IncomingMessage,
   res: ServerResponse,
-  state: { pair: PairCode; tokens: Map<string, Token> },
+  state: BridgeState,
   deps: BridgeDeps,
 ) {
   if (req.method === "OPTIONS") {
@@ -237,7 +302,11 @@ async function handleRequest(
   const path = url.pathname
   try {
     if (path === "/bridge/hello" && req.method === "GET") {
-      sendJson(res, 200, { name: "deveco-code", protocol: 1, product: "DevEco Code" })
+      sendJson(res, 200, {
+        name: "deveco-code",
+        protocol: PROTOCOL_VERSION,
+        product: "DevEco Code",
+      })
       return
     }
     if (path === "/bridge/pair" && req.method === "POST") {
@@ -254,10 +323,71 @@ async function handleRequest(
         sendJson(res, 401, { error: "invalid_pair_code" })
         return
       }
-      const token = issueToken(body.device)
+      // deviceId lets the phone reconnect later without another QR scan. Older
+      // clients that omit it fall back to a server-generated id.
+      const deviceId = typeof body.deviceId === "string" && body.deviceId ? body.deviceId : randomUUID()
+      const deviceName = typeof body.deviceName === "string" && body.deviceName ? body.deviceName : body.device
+      const token = issueToken(deviceName, deviceId)
       state.tokens.set(token.token, token)
+      state.devices.set(deviceId, {
+        deviceId,
+        deviceName,
+        endpoint: typeof body.endpoint === "string" ? body.endpoint : undefined,
+        osVersion: typeof body.osVersion === "string" ? body.osVersion : undefined,
+        appVersion: typeof body.appVersion === "string" ? body.appVersion : undefined,
+        protocolVersion: typeof body.protocolVersion === "number" ? body.protocolVersion : undefined,
+        token: token.token,
+        issuedAt: token.issuedAt,
+        expiresAt: token.expiresAt,
+        lastSeenAt: Date.now(),
+      })
+      saveDevices(deps, state.devices)
       state.pair = generatePairCode() // rotate to prevent replay
-      sendJson(res, 200, { token: token.token, expiresAt: token.expiresAt })
+      sendJson(res, 200, {
+        token: token.token,
+        expiresAt: token.expiresAt,
+        deviceId,
+        protocol: PROTOCOL_VERSION,
+      })
+      return
+    }
+    // Silent reconnect: the phone proves identity with deviceId + stored token and
+    // gets a refreshed expiry. A rejected token means re-pairing is required, and
+    // the phone must keep its deviceId either way.
+    if (path === "/bridge/reconnect" && req.method === "POST") {
+      const body = await readJson(req)
+      if (!body || typeof body.deviceId !== "string" || typeof body.token !== "string") {
+        sendJson(res, 400, { error: "invalid_body" })
+        return
+      }
+      const device = state.devices.get(body.deviceId)
+      if (!device || !safeEqual(device.token, body.token)) {
+        sendJson(res, 401, { error: "unauthorized" })
+        return
+      }
+      if (device.expiresAt < Date.now()) {
+        state.tokens.delete(device.token)
+        sendJson(res, 401, { error: "token_expired" })
+        return
+      }
+      device.expiresAt = Date.now() + TOKEN_TTL_MS
+      device.lastSeenAt = Date.now()
+      if (typeof body.deviceName === "string" && body.deviceName) device.deviceName = body.deviceName
+      if (typeof body.endpoint === "string" && body.endpoint) device.endpoint = body.endpoint
+      state.tokens.set(device.token, {
+        token: device.token,
+        deviceName: device.deviceName,
+        issuedAt: device.issuedAt,
+        expiresAt: device.expiresAt,
+        deviceId: device.deviceId,
+      })
+      saveDevices(deps, state.devices)
+      sendJson(res, 200, {
+        token: device.token,
+        expiresAt: device.expiresAt,
+        deviceId: device.deviceId,
+        protocol: PROTOCOL_VERSION,
+      })
       return
     }
 
@@ -265,6 +395,24 @@ async function handleRequest(
     const token = authorize(req, state)
     if (!token) {
       sendJson(res, 401, { error: "unauthorized" })
+      return
+    }
+
+    if (path === "/bridge/heartbeat" && req.method === "POST") {
+      const device = state.devices.get(token.deviceId)
+      if (device) {
+        device.lastSeenAt = Date.now()
+        saveDevices(deps, state.devices)
+      }
+      sendJson(res, 200, { ok: true, serverTime: Date.now() })
+      return
+    }
+    // Explicit unpair from the phone's "clear connection info" action.
+    if (path === "/bridge/unpair" && req.method === "POST") {
+      state.tokens.delete(token.token)
+      state.devices.delete(token.deviceId)
+      saveDevices(deps, state.devices)
+      sendJson(res, 200, { ok: true })
       return
     }
 
@@ -333,7 +481,7 @@ async function handleRequest(
       return
     }
     if (path === "/bridge/whoami" && req.method === "GET") {
-      sendJson(res, 200, { device: token.deviceName, issuedAt: token.issuedAt })
+      sendJson(res, 200, { device: token.deviceName, issuedAt: token.issuedAt, deviceId: token.deviceId })
       return
     }
     sendJson(res, 404, { error: "not_found", path })

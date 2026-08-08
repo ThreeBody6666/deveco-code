@@ -17,11 +17,38 @@
    - `port`
    - `pairCode`
    - `pairUrls`：可编码成二维码，格式：`deveco-remote://pair?host=<ip>&port=<port>&code=<code>`
-3. 手机端 `POST /bridge/pair` body：`{ "code": "123456", "device": "HarmonyOS" }`
+3. 手机端 `POST /bridge/pair` body：
+   ```json
+   { "code": "123456", "device": "Mate 80 Pro", "deviceId": "<uuid>",
+     "osVersion": "HarmonyOS 7", "appVersion": "1.0.0", "protocolVersion": 2 }
+   ```
+   - `deviceId`：手机首次启动生成的随机 UUID，持久化于本机安全存储
 4. 桌面端校验通过后：
    - 生成 24 字节 base64url token，TTL 30 天
    - **立即轮换 pair code**（防止重放）
-   - 返回 `{ "token": "...", "expiresAt": <ms> }`
+   - **按 `deviceId` 将设备持久化到磁盘**（桌面重启后仍可恢复）
+   - 返回 `{ "token": "...", "expiresAt": <ms>, "deviceId": "...", "protocol": 2 }`
+
+## 设备自动重连
+
+手机每次启动 / 回前台 / 网络恢复时，用已存的 `deviceId` + token 静默重连，无需再次扫码。
+
+### `POST /bridge/reconnect`
+
+```json
+{ "deviceId": "<uuid>", "token": "<stored>", "deviceName": "Mate 80 Pro", "protocolVersion": 2 }
+```
+
+- 成功：刷新 token 过期时间，返回 `{ token, expiresAt, deviceId, protocol }`
+- `401`：设备不存在或令牌不匹配 / 已过期 → 手机置「鉴权失败」，要求重新配对；**但手机绝不因一次失败删除 deviceId**
+
+### `POST /bridge/heartbeat`
+
+认证：`Authorization: Bearer <token>`。body 可空。用于刷新在线状态；任意认证请求都会顺带刷新 `lastSeenAt`。
+
+### `POST /bridge/unpair`
+
+认证：`Authorization: Bearer <token>`。用户主动取消配对时调用，桌面端删除该设备记录，手机清本地连接信息与 deviceId。
 
 ## 接口列表
 
@@ -29,6 +56,9 @@
 |------|------|------|------|
 | GET | `/bridge/hello` | 否 | 探活/嗅探 |
 | POST | `/bridge/pair` | 否 | 配对 |
+| POST | `/bridge/reconnect` | 否 | 按 deviceId+token 静默重连 |
+| POST | `/bridge/heartbeat` | 是 | 心跳，刷新在线状态 |
+| POST | `/bridge/unpair` | 是 | 取消配对并删除设备记录 |
 | GET | `/bridge/whoami` | 是 | 当前 token 信息 |
 | GET | `/bridge/sessions` | 是 | 代理 sidecar `GET /session` |
 | GET | `/bridge/sessions/:id/messages` | 是 | 代理 `GET /session/:id/message` |

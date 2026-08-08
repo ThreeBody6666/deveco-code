@@ -373,6 +373,7 @@ const main = Effect.gen(function* () {
           getSidecar: () => sidecarReady,
           log: (message, meta) => logger.log(message, meta),
           warn: (message, meta) => logger.warn(message, meta),
+          devicesFile: join(app.getPath("userData"), "remote-bridge-devices.json"),
         }),
       )
       logger.log("remote-bridge ready", remoteBridge.info() as unknown as Record<string, unknown>)
