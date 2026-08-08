@@ -27,6 +27,7 @@ import {
   type SidecarListener,
 } from "./server"
 import { createRemoteBridge, type BridgeController, type BridgeInfo } from "./remote-bridge"
+import { appIdentity } from "./app-identity"
 import { setupAutoUpdater, showUpdaterDialog } from "./updater"
 import {
   createMainWindow,
@@ -48,11 +49,6 @@ const APP_NAMES: Record<string, string> = {
   dev: "DevEco Code",
   beta: "DevEco Code",
   prod: "DevEco Code",
-}
-const APP_IDS: Record<string, string> = {
-  dev: "ai.opencode.desktop.dev",
-  beta: "ai.opencode.desktop.beta",
-  prod: "ai.opencode.desktop",
 }
 const TEST_ONBOARDING = process.env.DEVECO_TEST_ONBOARDING === "1"
 const jsCallStackFeature = "DocumentPolicyIncludeJSCallStacksInCrashReports"
@@ -117,7 +113,7 @@ const main = Effect.gen(function* () {
 
   process.env.DEVECO_DISABLE_EMBEDDED_WEB_UI = "true"
 
-  const appId = app.isPackaged ? APP_IDS[CHANNEL] : "ai.opencode.desktop.dev"
+  const identity = appIdentity(CHANNEL, app.isPackaged)
   const onboardingTestRoot = ((): string | undefined => {
     if (!TEST_ONBOARDING) return
 
@@ -134,10 +130,10 @@ const main = Effect.gen(function* () {
     return root
   })()
   app.setName(app.isPackaged ? APP_NAMES[CHANNEL] : "OpenCode Dev")
-  app.setAppUserModelId(appId)
+  app.setAppUserModelId(identity.shellId)
   app.setPath(
     "userData",
-    onboardingTestRoot ? join(onboardingTestRoot, "desktop") : join(app.getPath("appData"), appId),
+    onboardingTestRoot ? join(onboardingTestRoot, "desktop") : join(app.getPath("appData"), identity.dataId),
   )
   if (onboardingTestRoot) app.setPath("sessionData", join(onboardingTestRoot, "session"))
   logger = initLogging()
