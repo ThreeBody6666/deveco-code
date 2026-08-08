@@ -11,6 +11,7 @@ import {
   estimateSessionContextBreakdown,
   type SessionContextBreakdownKey,
 } from "@/components/session/session-context-breakdown"
+import { buildSessionContextBudget } from "@/components/session/session-context-budget"
 
 type Status = Todo["status"]
 
@@ -185,6 +186,7 @@ function ContextSection() {
   const { params } = useSessionLayout()
   const [summarizing, setSummarizing] = createSignal(false)
   const [summaryError, setSummaryError] = createSignal("")
+  const [detailsOpen, setDetailsOpen] = createSignal(false)
 
   const info = createMemo(() => (params.id ? sync().session.get(params.id) : undefined))
   const messages = createMemo<Message[]>(() => {
@@ -213,18 +215,6 @@ function ContextSection() {
   )
   const ctx = createMemo(() => metrics().context)
 
-  const percent = createMemo(() => {
-    const c = ctx()
-    if (!c || !c.limit) return 0
-    return Math.min(100, Math.max(0, (c.total / c.limit) * 100))
-  })
-  const percentLabel = createMemo(() => {
-    const p = percent()
-    if (p === 0) return "0"
-    if (p < 1) return "<1"
-    return String(Math.round(p))
-  })
-
   const breakdown = createMemo(() => {
     const c = ctx()
     if (!c?.input) return []
@@ -235,6 +225,24 @@ function ContextSection() {
       systemPrompt: systemPrompt(),
     })
   })
+
+  const budget = createMemo(() => {
+    const c = ctx()
+    return buildSessionContextBudget({
+      total: c?.total ?? 0,
+      limit: c?.limit,
+      breakdown: breakdown(),
+    })
+  })
+
+  const percentLabel = createMemo(() => {
+    const usage = budget().usage
+    if (usage === null) return "--"
+    if (usage === 0 && (ctx()?.total ?? 0) > 0) return "<1"
+    return String(usage)
+  })
+
+  const visibleSegments = createMemo(() => (detailsOpen() ? budget().segments : budget().segments.slice(0, 3)))
 
   const hasData = createMemo(() => !!ctx() && (ctx()?.total ?? 0) > 0)
 
@@ -267,8 +275,8 @@ function ContextSection() {
           <button
             type="button"
             onClick={() => void summarize()}
-            title="压缩上下文"
-            aria-label={summarizing() ? "正在压缩上下文" : "压缩上下文"}
+            title="压缩较早的会话内容以释放上下文"
+            aria-label={summarizing() ? "正在压缩上下文" : "压缩较早的会话内容以释放上下文"}
             aria-busy={summarizing()}
             disabled={summarizing()}
             class="h-7 px-2.5 shrink-0 rounded-md text-[11px] font-[500] leading-4 text-[var(--v2-text-text-accent)] border border-[var(--v2-border-border-base)] transition-colors hover:bg-[var(--v2-overlay-simple-overlay-hover)] active:bg-[var(--v2-overlay-simple-overlay-pressed)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-border-border-focus)] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -295,67 +303,87 @@ function ContextSection() {
               {summaryError()}
             </div>
           </Show>
-          {/* 进度条 */}
-          <div class="flex flex-col gap-1.5">
-            <div class="h-1.5 rounded-full bg-[var(--v2-overlay-simple-overlay-hover)] overflow-hidden flex">
-              <Show
-                when={breakdown().length > 0}
-                fallback={
-                  <div
-                    class="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${percent()}%`,
-                      background: "var(--v2-icon-icon-accent)",
-                    }}
-                  />
-                }
+          <div class="flex flex-col gap-2.5" aria-label={`上下文已使用 ${percentLabel()}%`}>
+            <div class="flex items-baseline justify-between gap-2">
+              <div class="flex items-baseline gap-1 min-w-0">
+                <span class="text-[15px] font-[600] leading-5 text-v2-text-text-base font-mono tabular-nums">
+                  {formatTokens(ctx()!.total)}
+                </span>
+                <Show when={ctx()?.limit}>
+                  <span class="text-[11px] font-mono tabular-nums text-v2-text-text-faint">
+                    / {formatTokens(ctx()!.limit!)}
+                  </span>
+                </Show>
+                <span class="text-[11px] text-v2-text-text-faint">Token</span>
+              </div>
+              <span
+                classList={{
+                  "text-[12px] font-mono tabular-nums shrink-0": true,
+                  "text-[var(--v2-state-fg-danger)]": budget().status === "critical",
+                  "text-[var(--v2-state-fg-warning)]": budget().status === "warning",
+                  "text-v2-text-text-accent": budget().status === "healthy",
+                  "text-v2-text-text-faint": budget().status === "unavailable",
+                }}
               >
-                <For each={breakdown()}>
-                  {(seg) => (
-                    <div
-                      class="h-full transition-all duration-500"
-                      style={{
-                        width: `${(seg.percent * percent()) / 100}%`,
-                        background: BREAKDOWN_COLOR[seg.key],
-                      }}
-                    />
-                  )}
-                </For>
-              </Show>
+                {percentLabel()}%
+              </span>
             </div>
-            <Show when={ctx()?.limit}>
-              <div class="flex items-center justify-between gap-2">
-                <span class="text-[11px] font-mono tabular-nums leading-4 text-v2-text-text-faint">
-                  {formatTokens(ctx()!.total)} / {formatTokens(ctx()!.limit!)}
-                </span>
-                <span class="text-[11px] leading-4 text-v2-text-text-faint truncate">
-                  {ctx()!.modelLabel}
-                </span>
+
+            <Show when={budget().usage !== null}>
+              <div class="h-1.5 rounded-full bg-[var(--v2-overlay-simple-overlay-hover)] overflow-hidden" role="img" aria-label={`上下文预算已使用 ${percentLabel()}%`}>
+                <div
+                  class="h-full rounded-full transition-[width] duration-300 bg-[var(--v2-icon-icon-accent)]"
+                  style={{ width: `${budget().usage}%` }}
+                />
+              </div>
+            </Show>
+
+            <Show when={budget().segments.length > 0}>
+              <div class="flex flex-col gap-2 pt-0.5">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-[11px] leading-4 text-v2-text-text-faint">上下文来源</span>
+                  <span class="text-[11px] leading-4 text-v2-text-text-faint truncate">{ctx()!.modelLabel}</span>
+                </div>
+                <div class="h-2 rounded-full bg-[var(--v2-overlay-simple-overlay-hover)] overflow-hidden flex" role="img" aria-label="上下文来源组成">
+                  <For each={budget().segments}>
+                    {(segment) => (
+                      <div
+                        class="h-full transition-[width] duration-300"
+                    style={{ width: `${segment.budgetPercent}%`, background: BREAKDOWN_COLOR[segment.key] }}
+                      />
+                    )}
+                  </For>
+                </div>
+                <div class="flex flex-col divide-y divide-[var(--v2-border-border-muted)] border-y border-[var(--v2-border-border-muted)]">
+                  <For each={visibleSegments()}>
+                    {(segment) => (
+                      <div class="flex items-center gap-2 py-1.5 min-w-0">
+                        <div class="size-1.5 rounded-full shrink-0" style={{ background: BREAKDOWN_COLOR[segment.key] }} />
+                        <span class="text-[11px] leading-4 text-v2-text-text-base truncate">{BREAKDOWN_LABEL[segment.key]}</span>
+                        <span class="ml-auto text-[11px] font-mono tabular-nums leading-4 text-v2-text-text-faint shrink-0">
+                          {formatTokens(segment.tokens)}
+                        </span>
+                        <span class="w-8 text-right text-[11px] font-mono tabular-nums leading-4 text-v2-text-text-faint shrink-0">
+                          {segment.percent < 1 ? "<1" : Math.round(segment.percent)}%
+                        </span>
+                      </div>
+                    )}
+                  </For>
+                </div>
+                <Show when={budget().segments.length > 3}>
+                  <button
+                    type="button"
+                    class="self-start text-[11px] leading-4 text-v2-text-text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--v2-border-border-focus)]"
+                    onClick={() => setDetailsOpen(!detailsOpen())}
+                    aria-expanded={detailsOpen()}
+                    aria-label={detailsOpen() ? "收起上下文来源明细" : "查看上下文来源明细"}
+                  >
+                    {detailsOpen() ? "收起明细" : `查看全部 ${budget().segments.length} 项`}
+                  </button>
+                </Show>
               </div>
             </Show>
           </div>
-
-          {/* 图例 */}
-          <Show when={breakdown().length > 0}>
-            <div class="grid grid-cols-2 gap-x-4 gap-y-1.5">
-              <For each={breakdown()}>
-                {(seg) => (
-                  <div class="flex items-center gap-1.5 min-w-0">
-                    <div
-                      class="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: BREAKDOWN_COLOR[seg.key] }}
-                    />
-                    <span class="text-[11px] leading-4 text-v2-text-text-faint truncate">
-                      {BREAKDOWN_LABEL[seg.key]}
-                    </span>
-                    <span class="text-[11px] font-mono tabular-nums leading-4 text-v2-text-text-faint ml-auto">
-                      {seg.percent < 1 ? "<1" : Math.round(seg.percent)}%
-                    </span>
-                  </div>
-                )}
-              </For>
-            </div>
-          </Show>
         </div>
       </Show>
     </Section>

@@ -296,9 +296,11 @@ export const layer = Layer.effect(
     })
 
     const tools: Interface["tools"] = Effect.fn("ToolRegistry.tools")(function* (input) {
+      const settings = yield* auth.get("deveco-websearch").pipe(Effect.orElseSucceed(() => undefined))
+      const managedWebSearch = settings?.type === "api" && settings.metadata?.enabled !== "false"
       const filtered = (yield* all()).filter((tool) => {
         if (tool.id === WebSearchTool.id) {
-          return webSearchEnabled(input.providerID, { exa: flags.enableExa, parallel: flags.enableParallel })
+          return managedWebSearch || webSearchEnabled(input.providerID, { exa: flags.enableExa, parallel: flags.enableParallel })
         }
 
         const usePatch =

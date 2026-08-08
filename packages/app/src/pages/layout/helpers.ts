@@ -1,5 +1,4 @@
 import { getFilename } from "@opencode-ai/core/util/path"
-import { base64Encode } from "@opencode-ai/core/util/encode"
 import { type Session } from "@opencode-ai/sdk/v2/client"
 import { pathKey } from "@/utils/path-key"
 import type { ServerConnection } from "@/context/server"
@@ -7,6 +6,24 @@ import type { ServerConnection } from "@/context/server"
 type SessionStore = {
   session?: Session[]
   path: { directory: string }
+}
+
+function routeDirectory(directory: string) {
+  const bytes = new TextEncoder().encode(directory)
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+  let result = ""
+
+  for (let index = 0; index < bytes.length; index += 3) {
+    const first = bytes[index]
+    const second = bytes[index + 1]
+    const third = bytes[index + 2]
+    result += alphabet[first >> 2]
+    result += alphabet[((first & 0b11) << 4) | ((second ?? 0) >> 4)]
+    if (second !== undefined) result += alphabet[((second & 0b1111) << 2) | ((third ?? 0) >> 6)]
+    if (third !== undefined) result += alphabet[third & 0b111111]
+  }
+
+  return result
 }
 
 function sortSessions(now: number) {
@@ -90,7 +107,7 @@ export const homeNewProjectPrompt = () =>
   "请作为 DevEco Code 的项目创建向导，当前会话目录就是新项目的存放目录。先确认我要创建的项目名称、应用类型和目标平台；如果我要创建 HarmonyOS 或 ArkTS 项目，必须使用 deveco-create-project skill 执行实际创建，这相当于走 deveco create 新建工程流程，不要只给方案或手动复制文件。创建前按 skill 规则确认 appName；创建成功后再继续后续页面或功能实现。"
 
 export function homeNewSessionHref(directory: string, prompt?: string) {
-  const href = `/${base64Encode(directory)}/session`
+  const href = `/${routeDirectory(directory)}/session`
   const trimmed = prompt?.trim()
   if (!trimmed) return href
   return `${href}?prompt=${encodeURIComponent(trimmed)}`

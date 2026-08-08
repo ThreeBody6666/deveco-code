@@ -703,6 +703,89 @@
   gap: 0;
 }
 
+.settings-v2-capabilities-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-v2-capabilities-subtitle,
+.settings-v2-capabilities-section-heading p {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--v2-text-text-muted);
+}
+
+.settings-v2-tab-body.settings-v2-capabilities {
+  gap: 24px;
+}
+
+.settings-v2-capabilities-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-v2-capabilities-section-heading > div {
+  min-width: 0;
+}
+
+.settings-v2-capability-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 0;
+}
+
+.settings-v2-capability-row + .settings-v2-capability-row {
+  border-top: 0.5px solid var(--v2-border-border-base);
+}
+
+.settings-v2-capability-icon {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 0.5px solid var(--v2-border-border-base);
+  border-radius: 6px;
+  color: var(--v2-icon-icon-accent);
+}
+
+.settings-v2-capability-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-v2-capability-copy strong { font-size: 13px; line-height: 16px; color: var(--v2-text-text-base); }
+.settings-v2-capability-copy span,
+.settings-v2-capability-copy code { overflow: hidden; font-size: 11px; line-height: 16px; color: var(--v2-text-text-muted); text-overflow: ellipsis; white-space: nowrap; }
+.settings-v2-capability-copy code { color: var(--v2-text-text-faint); }
+
+.settings-v2-capability-status-badge {
+  padding: 3px 6px;
+  border: 0.5px solid var(--v2-state-border-success);
+  border-radius: 4px;
+  color: var(--v2-state-fg-success);
+  font-size: 10px;
+  line-height: 12px;
+  white-space: nowrap;
+}
+
+.settings-v2-capabilities-status {
+  padding: 28px 12px;
+  color: var(--v2-text-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
 .settings-v2-tab-header.settings-v2-servers-header {
   padding-bottom: 24px;
 }
@@ -1277,6 +1360,107 @@
   [data-component="dialog-v2"][data-variant="settings"] [data-slot="dialog-close-button"] {
     transition: none;
   }
+}
+
+.settings-v2-capabilities {
+  gap: 28px;
+}
+
+.settings-v2-capabilities-section-heading,
+.settings-v2-capabilities-actions,
+.settings-v2-search-provider,
+.settings-v2-capabilities-switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-v2-capabilities-section-heading {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.settings-v2-capabilities-section-heading p,
+.settings-v2-capability-copy span,
+.settings-v2-capability-copy code {
+  color: var(--v2-text-text-weak);
+}
+
+.settings-v2-capability-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.settings-v2-capability-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--v2-border-border-base);
+  border-radius: 6px;
+}
+
+.settings-v2-capability-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 3px;
+}
+
+.settings-v2-capability-copy code {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-v2-capability-status-badge {
+  flex: none;
+  color: var(--v2-text-text-weak);
+  font-size: 12px;
+}
+
+.settings-v2-capabilities-status {
+  padding: 14px;
+  color: var(--v2-text-text-weak);
+}
+
+.settings-v2-search-provider {
+  padding: 12px 14px 0;
+}
+
+.settings-v2-search-provider label,
+.settings-v2-capabilities-switch {
+  cursor: pointer;
+  color: var(--v2-text-text-base);
+  font-size: 13px;
+}
+
+.settings-v2-search-key {
+  display: grid;
+  gap: 7px;
+  padding: 12px 14px;
+  color: var(--v2-text-text-weak);
+  font-size: 12px;
+}
+
+.settings-v2-search-key input {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--v2-border-border-base);
+  border-radius: 6px;
+  background: var(--v2-background-bg-base);
+  color: var(--v2-text-text-base);
+  padding: 0 10px;
+}
+
+.settings-v2-capabilities-actions {
+  justify-content: flex-end;
+  padding: 0 14px 14px;
 }
 
 @media (max-width: 760px) {

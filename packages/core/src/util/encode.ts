@@ -1,7 +1,19 @@
 export function base64Encode(value: string) {
   const bytes = new TextEncoder().encode(value)
-  const binary = Array.from(bytes, (b) => String.fromCharCode(b)).join("")
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "")
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+  let result = ""
+
+  for (let index = 0; index < bytes.length; index += 3) {
+    const first = bytes[index]
+    const second = bytes[index + 1]
+    const third = bytes[index + 2]
+    result += alphabet[first >> 2]
+    result += alphabet[((first & 0b11) << 4) | ((second ?? 0) >> 4)]
+    if (second !== undefined) result += alphabet[((second & 0b1111) << 2) | ((third ?? 0) >> 6)]
+    if (third !== undefined) result += alphabet[third & 0b111111]
+  }
+
+  return result
 }
 
 export function base64Decode(value: string) {
