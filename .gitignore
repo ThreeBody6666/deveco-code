@@ -34,6 +34,11 @@ target
 packages/desktop/dist-exe/
 packages/desktop/dist-deveco-preview/
 
+# Better Harness analysis artifacts (temp dirs, run dirs)
+.bh-tmp/
+.better-harness/
+.qoder/
+
 # Local dev files
 opencode-dev
 UPCOMING_CHANGELOG.md

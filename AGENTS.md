@@ -153,6 +153,12 @@ const table = sqliteTable("session", {
 
 - Always run `bun typecheck` from package directories (e.g., `packages/opencode`), never `tsc` directly.
 
+## Change Validation
+
+- After any change, run the checks scoped to that change (for example `bun typecheck` and focused tests from the affected package directory) and keep the results in the task record.
+- Close out each task with a minimal verification manifest: per change, the verification command, its result (pass/fail with a short failure note), and the coverage scope it exercised.
+- End-of-session summaries must list the final verification status and any residual risks for the delivered changes.
+
 ## V2 Session Core
 
 - Keep durable prompt admission separate from model execution. `SessionV2.prompt(...)` admits one durable `session_input` row before scheduling advisory `SessionExecution.wake(sessionID)` unless `resume: false` requests admit-only behavior. The serialized runner promotes admitted inputs into visible user messages at safe boundaries.

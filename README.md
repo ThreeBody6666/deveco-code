@@ -143,6 +143,28 @@ cd packages/desktop && bun run install:local
 
 ---
 
+### 核心代码边界（Core boundary）
+
+本仓库通过 better-harness core-change-watch 的边界配置**显式声明**核心代码目录，替代无配置时的按候选推断回退（inferred-core-boundary），使 diff 影响评估与后续检查/实现建议（`inspect-primary-core`、`apply-targeted-implementation`）的目标落在真实热核目录。
+
+**判定依据**（180 天窗口热文件 + 包级 commit 汇总）：
+
+- **包级 commit 汇总**：`packages/opencode` 以 216 次提交领先全部包（其次 core 39、app 35、sdk 33），为主要热核载体
+- **热文件分布**：180 天热文件前五全部位于 `packages/opencode/src`（`agent/agent.ts` 33、`tui/routes/session/index.tsx` 32、`tui/component/prompt/index.tsx` 28、`session/prompt.ts` 28、`provider/provider.ts` 28）
+- **sdk 的排除**：`packages/sdk/js/src` 的热度集中在生成输出 `v2/gen/`（非手写源码，生成物改动不应判定为核心变更），故 include 目录但排除生成子目录
+
+**配置位置**：`.better-harness/core-code`（每行一个模式；`#` 注释，`!` 前缀排除；排除规则须置于 include 之后）
+
+| 规则 | 含义 |
+| --- | --- |
+| `packages/opencode/src/` | 主热核：opencode 源码（agent / tui / session / provider / tool 等） |
+| `packages/sdk/js/src/` | 次热核：sdk 手写源码 |
+| `!packages/sdk/js/src/v2/gen/` | 排除 SDK 生成输出，生成物改动不触发核心边界 |
+
+**效果**：configured 边界下，follow-up 检查与实现建议优先采用配置目录内的 180 天热文件；若热核跨包（如 opencode 与 sdk 同时热），每个 include 目录都会被独立覆盖。
+
+---
+
 ## 跨平台开发计划
 
 当前个人增强版的跨平台支持情况：

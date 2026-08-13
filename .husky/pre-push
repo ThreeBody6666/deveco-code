@@ -18,3 +18,14 @@ if (process.versions.bun !== expectedBunVersion) {
 }
 '
 bun typecheck
+
+# SDK generated artifacts must be committed before pushing
+if ! git diff --quiet HEAD -- packages/sdk/js; then
+  bun run --cwd packages/sdk/js build
+  bun run --cwd packages/sdk/js typecheck
+  if ! git diff --quiet --exit-code HEAD -- packages/sdk/js/src/v2/gen; then
+    echo "error: SDK generation drift detected (packages/sdk/js/src/v2/gen differs from the committed output)."
+    echo "run 'bun run --cwd packages/sdk/js build' and commit the regenerated artifacts before pushing."
+    exit 1
+  fi
+fi

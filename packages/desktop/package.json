@@ -1,7 +1,7 @@
 {
   "name": "@opencode-ai/desktop",
   "private": true,
-  "version": "1.17.20",
+  "version": "1.17.22",
   "type": "module",
   "license": "MIT",
   "homepage": "https://opencode.ai",
@@ -23,6 +23,7 @@
     "package:win": "electron-builder --win --config electron-builder.config.ts",
     "package:linux": "electron-builder --linux --config electron-builder.config.ts",
     "install:local": "bun run build && bun ./scripts/install-local.ts",
+    "rollback:local": "bun ./scripts/rollback-local.ts",
     "native:build": "bun install --cwd native"
   },
   "main": "./out/main/index.js",

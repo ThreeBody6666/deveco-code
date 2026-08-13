@@ -3548,7 +3548,7 @@ export class Session2 extends HeyApiClient {
       }
       permission?: PermissionRuleset
       time?: {
-        archived?: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+        archived?: number
       }
     },
     options?: Options<never, ThrowOnError>,
@@ -4663,9 +4663,9 @@ export class Tui extends HeyApiClient {
   }
 
   /**
-   * Open help dialog
+   * Open user guide
    *
-   * Open the help dialog in the TUI to display user assistance information.
+   * Open the DevEco Code user guide in the default browser.
    */
   public openHelp<ThrowOnError extends boolean = false>(
     parameters?: {
