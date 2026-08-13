@@ -17,7 +17,11 @@ export function base64Encode(value: string) {
 }
 
 export function base64Decode(value: string) {
-  const binary = atob(value.replace(/-/g, "+").replace(/_/g, "/"))
+  let padded = value.replace(/-/g, "+").replace(/_/g, "/")
+  const remainder = padded.length % 4
+  if (remainder === 2) padded += "=="
+  else if (remainder === 3) padded += "="
+  const binary = atob(padded)
   const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
   return new TextDecoder().decode(bytes)
 }

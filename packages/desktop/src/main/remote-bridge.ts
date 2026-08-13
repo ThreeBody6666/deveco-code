@@ -171,7 +171,7 @@ function readPort() {
   const fromEnv = process.env[BRIDGE_PORT_ENV]
   if (!fromEnv) return DEFAULT_BRIDGE_PORT
   const parsed = Number.parseInt(fromEnv, 10)
-  return Number.isFinite(parsed) ? parsed : DEFAULT_BRIDGE_PORT
+  return Number.isNaN(parsed) ? DEFAULT_BRIDGE_PORT : parsed
 }
 
 function getListeningPort(server: Server, fallback: number) {

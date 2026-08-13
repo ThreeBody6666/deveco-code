@@ -298,11 +298,11 @@ function ContextSection() {
             <div class="flex items-baseline justify-between gap-2">
               <div class="flex items-baseline gap-1 min-w-0">
                 <span class="text-[15px] font-[600] leading-5 text-v2-text-text-base font-mono tabular-nums">
-                  {formatTokens(ctx()!.input)}
+                  {formatTokens(ctx()?.input ?? 0)}
                 </span>
                 <Show when={ctx()?.limit}>
                   <span class="text-[11px] font-mono tabular-nums text-v2-text-text-faint">
-                    / {formatTokens(ctx()!.limit!)}
+                    / {formatTokens(ctx()?.limit ?? 0)}
                   </span>
                 </Show>
                 <span class="text-[11px] text-v2-text-text-faint">Token</span>
@@ -322,7 +322,7 @@ function ContextSection() {
 
             <div class="flex items-center justify-between gap-2 text-[11px] leading-4 text-v2-text-text-faint">
               <span>本轮消耗</span>
-              <span class="font-mono tabular-nums">{formatTokens(ctx()!.total)} Token</span>
+              <span class="font-mono tabular-nums">{formatTokens(ctx()?.total ?? 0)} Token</span>
             </div>
 
             <Show when={budget().usage !== null}>
@@ -338,7 +338,7 @@ function ContextSection() {
               <div class="flex flex-col gap-2 pt-0.5">
                 <div class="flex items-center justify-between gap-2">
                   <span class="text-[11px] leading-4 text-v2-text-text-faint">上下文来源</span>
-                  <span class="text-[11px] leading-4 text-v2-text-text-faint truncate">{ctx()!.modelLabel}</span>
+                  <span class="text-[11px] leading-4 text-v2-text-text-faint truncate">{ctx()?.modelLabel ?? ""}</span>
                 </div>
                 <div class="h-2 rounded-full bg-[var(--v2-overlay-simple-overlay-hover)] overflow-hidden flex" role="img" aria-label="上下文来源组成">
                   <For each={budget().segments}>
