@@ -1,6 +1,10 @@
 #!/usr/bin/env bun
 
-const repo = process.env.GITHUB_REPOSITORY || "anomalyco/opencode"
+const repo = process.env.GITHUB_REPOSITORY
+if (!repo) {
+  console.error("GITHUB_REPOSITORY environment variable is required")
+  process.exit(1)
+}
 const days = 60
 const msg = `To stay organized issues are automatically closed after ${days} days of no activity. If the issue is still relevant please open a new one.`
 
