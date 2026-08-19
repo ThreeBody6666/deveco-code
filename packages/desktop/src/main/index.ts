@@ -317,7 +317,10 @@ const main = Effect.gen(function* () {
     const fromEnv = process.env.DEVECO_PORT
     if (fromEnv) {
       const parsed = Number.parseInt(fromEnv, 10)
-      if (!Number.isNaN(parsed)) return parsed
+      // 0 binds an ephemeral port but the URL would still advertise :0, so
+      // fall through to our own ephemeral allocation instead.
+      if (parsed > 0 && parsed <= 65535) return parsed
+      logger.warn(`ignoring invalid DEVECO_PORT value: ${fromEnv}`)
     }
 
     const res = yield* Deferred.make<number, unknown>()

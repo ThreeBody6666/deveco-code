@@ -156,9 +156,14 @@ const createPlatform = (): Platform => {
       if (!result) return
       try {
         for (const file of result.files) {
-          const selected = new File([await window.api.readPickedFile(result.token, file.path)], file.name)
-          attachmentPaths.set(selected, file.path)
-          await onFile(selected)
+          try {
+            const selected = new File([await window.api.readPickedFile(result.token, file.path)], file.name)
+            attachmentPaths.set(selected, file.path)
+            await onFile(selected)
+          } catch (error) {
+            // One unreadable file must not discard the rest of the selection.
+            console.error("failed to read picked file", file.path, error)
+          }
         }
       } finally {
         await window.api.releasePickedFiles(result.token)

@@ -270,19 +270,24 @@ export const make = Effect.gen(function* () {
       const proc = launch(command.command, command.args, opts)
       let end = false
       let exit: readonly [code: number | null, signal: NodeJS.Signals | null] | undefined
+      let exitFallbackTimer: ReturnType<typeof setTimeout> | undefined
       proc.on("error", (err) => {
         resume(Effect.fail(toPlatformError("spawn", err, command)))
       })
       proc.on("exit", (...args) => {
         exit = args
-        setTimeout(() => {
+        exitFallbackTimer = setTimeout(() => {
           if (!end) {
             end = true
             Deferred.doneUnsafe(signal, Exit.succeed(args))
           }
         }, 2000)
+        // Only a fallback for streams that never emit "close"; never keep the
+        // event loop alive for it.
+        exitFallbackTimer.unref?.()
       })
       proc.on("close", (...args) => {
+        if (exitFallbackTimer !== undefined) clearTimeout(exitFallbackTimer)
         if (end) return
         end = true
         Deferred.doneUnsafe(signal, Exit.succeed(exit ?? args))

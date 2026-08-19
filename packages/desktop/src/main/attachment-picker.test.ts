@@ -84,4 +84,17 @@ describe("picked file authorizations", () => {
     await authorizations.read(1, token, "a.txt")
     await expect(authorizations.read(1, token, "b.txt")).rejects.toThrow("budget exceeded")
   })
+
+  test("keeps a path authorized when its read fails so it stays retryable", async () => {
+    let fail = true
+    const authorizations = createPickedFileAuthorizations(async (path) => {
+      if (fail) throw new Error("transient read failure")
+      return new TextEncoder().encode(path).buffer
+    })
+    const token = authorizations.add(1, ["a.txt"])
+
+    await expect(authorizations.read(1, token, "a.txt")).rejects.toThrow("transient read failure")
+    fail = false
+    expect(new TextDecoder().decode(await authorizations.read(1, token, "a.txt"))).toBe("a.txt")
+  })
 })

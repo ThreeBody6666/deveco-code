@@ -41,7 +41,19 @@ export function DialogConnectProvider(props: { provider: string }) {
   })
 
   const provider = createMemo(
-    () => providers.all().get(props.provider) ?? serverSync().data.provider.all.get(props.provider)!,
+    () =>
+      providers.all().get(props.provider) ??
+      serverSync().data.provider.all.get(props.provider) ?? {
+        // The provider entry can disappear (config removal, sync refresh)
+        // while the dialog is open; fall back to a minimal stub instead of
+        // crashing the dialog subtree.
+        id: props.provider,
+        name: props.provider,
+        source: "custom" as const,
+        env: [],
+        options: {},
+        models: {},
+      },
   )
   const fallback = createMemo<ProviderAuthMethod[]>(() => [
     {

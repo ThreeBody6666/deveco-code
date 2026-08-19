@@ -68,9 +68,12 @@ export function applyOnly(db: Database, input: Migration[]) {
 
     for (const migration of input) {
       if (completed.has(migration.id)) continue
+      // Skipping must leave the migration pending, otherwise journaling it as
+      // applied would permanently hide the schema change once the env var is removed.
+      if (process.env.DEVECO_SKIP_MIGRATIONS) continue
       yield* db.transaction((tx) =>
         Effect.gen(function* () {
-          if (!process.env.DEVECO_SKIP_MIGRATIONS) yield* migration.up(tx)
+          yield* migration.up(tx)
           yield* tx.run(
             sql`INSERT INTO ${sql.identifier("migration")} (id, time_completed) VALUES (${migration.id}, ${Date.now()})`,
           )

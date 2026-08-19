@@ -17,9 +17,12 @@ export function createPickedFileAuthorizations(
     },
     async read(sender: number, token: string, path: string) {
       const selection = selections.get(token)
-      if (selection?.sender !== sender || !selection.paths.delete(path))
+      if (selection?.sender !== sender || !selection.paths.has(path))
         throw new Error("File was not selected by the picker")
       const bytes = await read(path, selection.remaining)
+      // Consume the authorization only after a successful read so a failed
+      // read (file deleted, budget exceeded) leaves the path retryable.
+      selection.paths.delete(path)
       selection.remaining -= bytes.byteLength
       if (selection.paths.size === 0) selections.delete(token)
       return bytes
