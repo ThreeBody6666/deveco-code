@@ -19,6 +19,10 @@ export type SidecarListener = { stop: () => Promise<void> }
 const SIDECAR_SERVICE_NAME = "opencode server"
 const SIDECAR_START_STALL_TIMEOUT = 60_000
 const SIDECAR_STOP_TIMEOUT = 6_000
+// Mirrors the 30s Effect.timeout in index.ts. The outer timeout cannot cancel
+// this JS promise, so the loop stops itself to avoid polling forever when the
+// sidecar stays alive but /global/health never returns ok.
+const SIDECAR_HEALTH_CHECK_TIMEOUT_MS = 30_000
 
 type SpawnLocalServerOptions = {
   userDataPath: string
@@ -142,6 +146,7 @@ export async function spawnLocalServer(
   const wait = (async () => {
     const url = `http://${hostname}:${port}`
     let healthy = false
+    const startedAt = Date.now()
     const gone = exit.promise.then((code) => {
       if (healthy) return
       throw new Error(`Sidecar exited before health check passed with code ${code}`)
@@ -150,6 +155,7 @@ export async function spawnLocalServer(
     const ready = async () => {
       while (true) {
         await new Promise((resolve) => setTimeout(resolve, 100))
+        if (Date.now() - startedAt > SIDECAR_HEALTH_CHECK_TIMEOUT_MS) return
         if (await checkHealth(url, password)) {
           healthy = true
           return

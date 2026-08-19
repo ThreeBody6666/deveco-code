@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron"
-import type { ElectronAPI, WslServersEvent } from "./types"
+import type { ElectronAPI, RemoteBridgeInfo, WslServersEvent } from "./types"
 import type { UpdaterState } from "@opencode-ai/app/updater"
 
 const updaterCallbacks = new Set<(state: UpdaterState) => void>()
@@ -8,6 +8,12 @@ let updaterSubscription: Promise<void> | undefined
 const updaterHandler = (_: unknown, state: UpdaterState) => {
   updaterState = state
   updaterCallbacks.forEach((callback) => callback(state))
+}
+
+const remoteBridgeCallbacks = new Set<(info: RemoteBridgeInfo) => void>()
+let remoteBridgeSubscription: Promise<void> | undefined
+const remoteBridgeHandler = (_: unknown, info: RemoteBridgeInfo) => {
+  remoteBridgeCallbacks.forEach((callback) => callback(info))
 }
 
 const api: ElectronAPI = {
@@ -127,6 +133,21 @@ const api: ElectronAPI = {
   recordFatalRendererError: (error) => ipcRenderer.invoke("record-fatal-renderer-error", error),
   remoteBridgeInfo: () => ipcRenderer.invoke("remote-bridge-info"),
   remoteBridgeRegenerate: () => ipcRenderer.invoke("remote-bridge-regenerate"),
+  remoteBridgeSubscribe: async (cb) => {
+    remoteBridgeCallbacks.add(cb)
+    if (!remoteBridgeSubscription) {
+      ipcRenderer.on("remote-bridge-info-changed", remoteBridgeHandler)
+      remoteBridgeSubscription = ipcRenderer.invoke("remote-bridge-subscribe")
+    }
+    await remoteBridgeSubscription
+    return () => {
+      remoteBridgeCallbacks.delete(cb)
+      if (remoteBridgeCallbacks.size > 0) return
+      ipcRenderer.removeListener("remote-bridge-info-changed", remoteBridgeHandler)
+      remoteBridgeSubscription = undefined
+      void ipcRenderer.invoke("remote-bridge-unsubscribe")
+    }
+  },
 }
 
 contextBridge.exposeInMainWorld("api", api)

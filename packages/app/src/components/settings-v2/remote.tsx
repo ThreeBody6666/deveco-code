@@ -14,6 +14,7 @@ type RemoteBridgeInfo = {
 type RemoteBridgeApi = {
   remoteBridgeInfo: () => Promise<RemoteBridgeInfo | null>
   remoteBridgeRegenerate: () => Promise<RemoteBridgeInfo | null>
+  remoteBridgeSubscribe: (cb: (info: RemoteBridgeInfo) => void) => Promise<() => void>
 }
 
 function getApi() {
@@ -44,6 +45,8 @@ export const SettingsRemoteV2: Component = () => {
   let refreshedCode = ""
   let expiryTimer: ReturnType<typeof setInterval> | undefined
   let copyTimer: ReturnType<typeof setTimeout> | undefined
+  let bridgeUnsubscribe: (() => void) | undefined
+  let subscribeCancelled = false
 
   const loadInfo = async (showLoading = true) => {
     if (fetching) return
@@ -109,11 +112,23 @@ export const SettingsRemoteV2: Component = () => {
       refreshedCode = current.pairCode
       void loadInfo(false)
     }, 1000)
+    const api = getApi()
+    if (!api?.remoteBridgeSubscribe) return
+    void api.remoteBridgeSubscribe((data) => {
+      refreshedCode = ""
+      setInfo(data)
+      setNow(Date.now())
+    }).then((unsubscribe) => {
+      if (subscribeCancelled) unsubscribe()
+      else bridgeUnsubscribe = unsubscribe
+    })
   })
 
   onCleanup(() => {
+    subscribeCancelled = true
     clearInterval(expiryTimer)
     clearTimeout(copyTimer)
+    bridgeUnsubscribe?.()
   })
 
   const readyInfo = createMemo(() => (error() ? undefined : info()))

@@ -279,6 +279,7 @@ const main = Effect.gen(function* () {
     recordFatalRendererError: (error) => writeLog("renderer", "fatal renderer error", { ...error }, "error"),
     getRemoteBridgeInfo: () => remoteBridge?.info() ?? null,
     regenerateRemoteBridgeCode: () => remoteBridge?.regeneratePairCode() ?? null,
+    subscribeRemoteBridgeChanges: (listener) => (remoteBridge ? remoteBridge.onChange(listener) : () => {}),
   })
   registerWslIpcHandlers(wslServers)
 

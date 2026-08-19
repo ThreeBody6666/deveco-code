@@ -146,4 +146,5 @@ export type ElectronAPI = {
   recordFatalRendererError: (error: FatalRendererError) => Promise<void>
   remoteBridgeInfo: () => Promise<RemoteBridgeInfo | null>
   remoteBridgeRegenerate: () => Promise<RemoteBridgeInfo | null>
+  remoteBridgeSubscribe: (cb: (info: RemoteBridgeInfo) => void) => Promise<() => void>
 }

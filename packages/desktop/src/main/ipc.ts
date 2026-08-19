@@ -5,7 +5,7 @@ import { app, BrowserWindow, Notification, clipboard, dialog, ipcMain, shell } f
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron"
 import type { DesktopMenuAction } from "@opencode-ai/app/desktop-menu"
 
-import type { FatalRendererError, ServerReadyData, TitlebarTheme } from "../preload/types"
+import type { FatalRendererError, RemoteBridgeInfo, ServerReadyData, TitlebarTheme } from "../preload/types"
 import { runDesktopMenuAction } from "./desktop-menu-actions"
 import { assertAttachmentBudget, createPickedFileAuthorizations } from "./attachment-picker"
 import { getStore } from "./store"
@@ -39,11 +39,18 @@ type Deps = {
   recordFatalRendererError: (error: FatalRendererError) => Promise<void> | void
   getRemoteBridgeInfo: () => unknown
   regenerateRemoteBridgeCode: () => unknown
+  subscribeRemoteBridgeChanges: (listener: (info: RemoteBridgeInfo) => void) => () => void
 }
 
 export function registerIpcHandlers(deps: Deps) {
   const updaterSubscriptions = createUpdaterSubscriptions()
   app.once("will-quit", updaterSubscriptions.clear)
+
+  const remoteBridgeSubscriptions = new Map<number, () => void>()
+  app.once("will-quit", () => {
+    for (const unsubscribe of remoteBridgeSubscriptions.values()) unsubscribe()
+    remoteBridgeSubscriptions.clear()
+  })
 
   ipcMain.handle("kill-sidecar", () => deps.killSidecar())
   ipcMain.handle("await-initialization", () => deps.awaitInitialization())
@@ -80,6 +87,24 @@ export function registerIpcHandlers(deps: Deps) {
   )
   ipcMain.handle("remote-bridge-info", () => deps.getRemoteBridgeInfo())
   ipcMain.handle("remote-bridge-regenerate", () => deps.regenerateRemoteBridgeCode())
+  ipcMain.handle("remote-bridge-subscribe", (event) => {
+    const id = event.sender.id
+    const unsubscribe = deps.subscribeRemoteBridgeChanges((info) => {
+      if (event.sender.isDestroyed()) return
+      event.sender.send("remote-bridge-info-changed", info)
+    })
+    remoteBridgeSubscriptions.set(id, unsubscribe)
+    event.sender.once("destroyed", () => {
+      unsubscribe()
+      remoteBridgeSubscriptions.delete(id)
+    })
+  })
+  ipcMain.handle("remote-bridge-unsubscribe", (event) => {
+    const unsubscribe = remoteBridgeSubscriptions.get(event.sender.id)
+    if (!unsubscribe) return
+    unsubscribe()
+    remoteBridgeSubscriptions.delete(event.sender.id)
+  })
   ipcMain.handle("store-get", (_event: IpcMainInvokeEvent, name: string, key: string) => {
     try {
       const store = getStore(name)
