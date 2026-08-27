@@ -163,6 +163,25 @@ export async function sendFollowupDraft(input: FollowupSendInput) {
       parts: requestParts,
       variant: input.draft.variant,
     })
+
+    // Keep the UI correct when the server event stream reconnects slowly.
+    // This deliberately uses a few delayed refreshes instead of continuously
+    // pulling the complete message history of a large session.
+    const syncSession = input.sync.session.sync
+    if (typeof syncSession === "function") {
+      void (async () => {
+        for (const delay of [1_500, 5_000, 12_000]) {
+          await new Promise((resolve) => setTimeout(resolve, delay))
+          const status = await input.client.session.status().catch(() => undefined)
+          const working = status?.data?.[input.draft.sessionID]?.type === "busy"
+          if (!working) {
+            await syncSession(input.draft.sessionID, { force: true }).catch(() => {})
+            setIdle()
+            break
+          }
+        }
+      })()
+    }
     return true
   } catch (err) {
     batch(() => {

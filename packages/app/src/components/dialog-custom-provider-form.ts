@@ -1,11 +1,15 @@
 const PROVIDER_ID = /^[a-z0-9][a-z0-9-_]*$/
 const OPENAI_COMPATIBLE = "@ai-sdk/openai-compatible"
+const DEFAULT_CONTEXT_WINDOW = 32_768
+const DEFAULT_MAX_OUTPUT = 8_192
 
 type Translator = (key: string, vars?: Record<string, string | number | boolean>) => string
 
 export type ModelErr = {
   id?: string
   name?: string
+  contextWindow?: string
+  maxOutput?: string
 }
 
 export type HeaderErr = {
@@ -17,6 +21,8 @@ export type ModelRow = {
   row: string
   id: string
   name: string
+  contextWindow: string
+  maxOutput: string
   err: ModelErr
 }
 
@@ -49,7 +55,7 @@ export type EditableCustomProvider = {
       baseURL?: string
       headers?: Record<string, string>
     }
-    models?: Record<string, { name?: string }>
+    models?: Record<string, { name?: string; limit?: { context?: number; output?: number } }>
   }
 }
 
@@ -65,6 +71,8 @@ export function customProviderForm(provider?: EditableCustomProvider): FormState
     row: nextRow(),
     id,
     name: model.name ?? id,
+    contextWindow: model.limit?.context?.toString() ?? "",
+    maxOutput: model.limit?.output?.toString() ?? "",
     err: {},
   }))
   const headers = Object.entries(provider?.config.options?.headers ?? {}).map(([key, value]) => ({
@@ -126,10 +134,29 @@ export function validateCustomProvider(input: ValidateArgs) {
             return undefined
           })()
     const nameError = !m.name.trim() ? input.t("provider.custom.error.required") : undefined
-    return { id: idError, name: nameError }
+    const contextWindow = parseOptionalTokenLimit(m.contextWindow)
+    const maxOutput = parseOptionalTokenLimit(m.maxOutput)
+    return {
+      id: idError,
+      name: nameError,
+      contextWindow: contextWindow === "invalid" ? input.t("provider.custom.error.positiveInteger") : undefined,
+      maxOutput: maxOutput === "invalid" ? input.t("provider.custom.error.positiveInteger") : undefined,
+    }
   })
-  const modelsValid = models.every((m) => !m.id && !m.name)
-  const modelConfig = Object.fromEntries(input.form.models.map((m) => [m.id.trim(), { name: m.name.trim() }]))
+  const modelsValid = models.every((m) => !m.id && !m.name && !m.contextWindow && !m.maxOutput)
+  const modelConfig = Object.fromEntries(
+    input.form.models.map((m) => {
+      const context = parseOptionalTokenLimit(m.contextWindow)
+      const output = parseOptionalTokenLimit(m.maxOutput)
+      const hasLimit = typeof context === "number" || typeof output === "number"
+      // The config contract requires both values when a limit is specified.
+      // Keep the other field at the app default when the user overrides only one.
+      const limit = hasLimit
+        ? { context: typeof context === "number" ? context : DEFAULT_CONTEXT_WINDOW, output: typeof output === "number" ? output : DEFAULT_MAX_OUTPUT }
+        : undefined
+      return [m.id.trim(), { name: m.name.trim(), ...(limit ? { limit } : {}) }]
+    }),
+  )
 
   const seenHeaders = new Set<string>()
   const headers = input.form.headers.map((h) => {
@@ -191,5 +218,12 @@ let row = 0
 
 const nextRow = () => `row-${row++}`
 
-export const modelRow = (): ModelRow => ({ row: nextRow(), id: "", name: "", err: {} })
+const parseOptionalTokenLimit = (value: string) => {
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  const number = Number(trimmed)
+  return Number.isSafeInteger(number) && number > 0 ? number : "invalid"
+}
+
+export const modelRow = (): ModelRow => ({ row: nextRow(), id: "", name: "", contextWindow: "", maxOutput: "", err: {} })
 export const headerRow = (): HeaderRow => ({ row: nextRow(), key: "", value: "", err: {} })

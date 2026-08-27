@@ -47,3 +47,4 @@ logs/
 tsconfig.tsbuildinfo
 .build-cache/
 specs/
+HANDOFF.md

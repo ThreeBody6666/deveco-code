@@ -189,6 +189,14 @@ async function writeZip(output: string, entries: Entry[]) {
 }
 
 function initConsoleTransport() {
+  // A packaged Windows app may inherit a closed console pipe. Writing through
+  // electron-log's console transport then raises EPIPE and can recurse through
+  // Electron's uncaught-exception dialog. File logging remains enabled.
+  if (app.isPackaged) {
+    log.transports.console.level = false
+    return
+  }
+
   const write = log.transports.console.writeFn.bind(log.transports.console)
   log.transports.console.writeFn = (options) => {
     try {

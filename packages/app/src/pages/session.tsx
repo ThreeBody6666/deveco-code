@@ -1023,7 +1023,10 @@ export default function Page() {
   )
 
   const autoScroll = createAutoScroll({
-    working: () => true,
+    working: () => {
+      const id = params.id
+      return id ? sync().data.session_working(id) : false
+    },
     overflowAnchor: "none",
   })
   createEffect(

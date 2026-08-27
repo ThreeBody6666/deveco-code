@@ -80,6 +80,17 @@ describe("getSessionContextMetrics", () => {
     expect(metrics.context?.usage).toBeNull()
   })
 
+  test("uses the request input rather than total token consumption for context usage", () => {
+    const messages = [assistant("a1", { input: 80, output: 9_000, reasoning: 3_000, read: 500, write: 500 }, 0.1)]
+    const providers = [{ id: "openai", models: { "gpt-4.1": { limit: { context: 1_000 } } } }]
+
+    const metrics = getSessionContextMetrics(messages, providers)
+
+    expect(metrics.context?.input).toBe(80)
+    expect(metrics.context?.total).toBe(13_080)
+    expect(metrics.context?.usage).toBe(8)
+  })
+
   test("recomputes when message array is mutated in place", () => {
     const messages = [assistant("a1", { input: 10, output: 10, reasoning: 10, read: 10, write: 10 }, 0.25)]
     const providers = [{ id: "openai", models: {} }]

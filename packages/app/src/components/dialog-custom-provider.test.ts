@@ -24,7 +24,7 @@ describe("validateCustomProvider", () => {
       name: "Custom Provider",
       baseURL: "https://api.example.com",
       apiKey: "",
-      models: [{ id: "model-a", name: "Model A" }],
+      models: [{ id: "model-a", name: "Model A", contextWindow: "", maxOutput: "" }],
       headers: [{ key: "X-Test", value: "enabled" }],
       err: {},
     })
@@ -37,7 +37,7 @@ describe("validateCustomProvider", () => {
         name: " Custom Provider ",
         baseURL: "https://api.example.com ",
         apiKey: " {env: CUSTOM_PROVIDER_KEY} ",
-        models: [{ row: "m0", id: " model-a ", name: " Model A ", err: {} }],
+        models: [{ row: "m0", id: " model-a ", name: " Model A ", contextWindow: "128000", maxOutput: "8192", err: {} }],
         headers: [
           { row: "h0", key: " X-Test ", value: " enabled ", err: {} },
           { row: "h1", key: "", value: "", err: {} },
@@ -64,7 +64,7 @@ describe("validateCustomProvider", () => {
           },
         },
         models: {
-          "model-a": { name: "Model A" },
+          "model-a": { name: "Model A", limit: { context: 128000, output: 8192 } },
         },
       },
     })
@@ -78,8 +78,8 @@ describe("validateCustomProvider", () => {
         baseURL: "https://api.example.com",
         apiKey: "secret",
         models: [
-          { row: "m0", id: "model-a", name: "Model A", err: {} },
-          { row: "m1", id: "model-a", name: "Model A 2", err: {} },
+          { row: "m0", id: "model-a", name: "Model A", contextWindow: "", maxOutput: "", err: {} },
+          { row: "m1", id: "model-a", name: "Model A 2", contextWindow: "", maxOutput: "", err: {} },
         ],
         headers: [
           { row: "h0", key: "Authorization", value: "one", err: {} },
@@ -97,6 +97,8 @@ describe("validateCustomProvider", () => {
     expect(result.models[1]).toEqual({
       id: "provider.custom.error.duplicate",
       name: undefined,
+      contextWindow: undefined,
+      maxOutput: undefined,
     })
     expect(result.headers[1]).toEqual({
       key: "provider.custom.error.duplicate",

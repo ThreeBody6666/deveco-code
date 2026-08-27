@@ -42,7 +42,9 @@ const lastAssistantWithTokens = (messages: Message[]) => {
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i]
     if (msg.role !== "assistant") continue
-    if (tokenTotal(msg) <= 0) continue
+    // Context is the prompt sent to the model, not response/reasoning/cache
+    // usage accumulated while handling that request.
+    if (msg.tokens.input <= 0) continue
     return msg
   }
 }

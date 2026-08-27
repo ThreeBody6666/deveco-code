@@ -87,7 +87,7 @@ export function DialogCustomProvider(props: Props) {
     setForm("err", key, undefined)
   }
 
-  const setModel = (index: number, key: "id" | "name", value: string) => {
+  const setModel = (index: number, key: "id" | "name" | "contextWindow" | "maxOutput", value: string) => {
     batch(() => {
       setForm("models", index, key, value)
       setForm("models", index, "err", key, undefined)
@@ -245,6 +245,34 @@ export function DialogCustomProvider(props: Props) {
                       error={m.err.id}
                     />
                   </div>
+                  <div class="flex-1 min-w-28">
+                    <TextField
+                      label={language.t("provider.custom.models.contextWindow.label")}
+                      hideLabel
+                      type="number"
+                      min="1"
+                      inputmode="numeric"
+                      placeholder={language.t("provider.custom.models.contextWindow.placeholder")}
+                      value={m.contextWindow}
+                      onChange={(v) => setModel(i(), "contextWindow", v)}
+                      validationState={m.err.contextWindow ? "invalid" : undefined}
+                      error={m.err.contextWindow}
+                    />
+                  </div>
+                  <div class="flex-1 min-w-28">
+                    <TextField
+                      label={language.t("provider.custom.models.maxOutput.label")}
+                      hideLabel
+                      type="number"
+                      min="1"
+                      inputmode="numeric"
+                      placeholder={language.t("provider.custom.models.maxOutput.placeholder")}
+                      value={m.maxOutput}
+                      onChange={(v) => setModel(i(), "maxOutput", v)}
+                      validationState={m.err.maxOutput ? "invalid" : undefined}
+                      error={m.err.maxOutput}
+                    />
+                  </div>
                   <div class="flex-1">
                     <TextField
                       label={language.t("provider.custom.models.name.label")}
@@ -268,6 +296,7 @@ export function DialogCustomProvider(props: Props) {
                 </div>
               )}
             </For>
+            <p class="text-12-regular text-text-weak">{language.t("provider.custom.models.limits.description")}</p>
             <Button type="button" size="small" variant="ghost" icon="plus-small" onClick={addModel} class="self-start">
               {language.t("provider.custom.models.add")}
             </Button>
