@@ -5,9 +5,13 @@ import { Global } from "@opencode-ai/core/global"
 import {
   buildEnv,
   clearSavedDevEcoHome,
+  devEcoHomeMissingMessage,
+  devEcoHomeWarning,
   findDevEcoHome,
+  getDevEcoHome,
   hdcPath,
   hvigorPath,
+  invalidateDevEcoHomeCache,
   isDevEcoHome,
   loadSavedDevEcoHome,
   MIN_DEVECO_STUDIO_VERSION,
@@ -15,7 +19,8 @@ import {
   resolveDevEcoHome,
   saveDevEcoHome,
   sdkPath,
-} from "../../../src/tool/lib/env"
+  validateHome,
+} from "../../../src/tool/lib/deveco-home"
 import { tmpdir } from "../../fixture/fixture"
 
 async function scaffoldDevEcoHome(base: string, version = "6.1.0") {
@@ -52,6 +57,7 @@ describe("DEVECO_HOME recognition", () => {
 
   afterEach(async () => {
     Global.Path.state = previousState
+    invalidateDevEcoHomeCache()
     await withDevecoHome(undefined, async () => {
       await clearSavedDevEcoHome()
     })
@@ -266,6 +272,153 @@ describe("DEVECO_HOME recognition", () => {
       expect(sdkPath(home)).toBe(path.join(home, "sdk"))
       const hdc = process.platform === "win32" ? "hdc.exe" : "hdc"
       expect(hdcPath(home)).toBe(path.join(home, "sdk", "default", "openharmony", "toolchains", hdc))
+    })
+  })
+
+  describe("subdirectory descent", () => {
+    test("resolves an install root nested below a shallow container", async () => {
+      await using tmp = await tmpdir()
+      const container = path.join(tmp.path, "DevEco Studio")
+      const nested = path.join(container, "xin", "DevEco Studio")
+      await scaffoldDevEcoHome(nested)
+      expect(await resolveDevEcoHome(container)).toBe(nested)
+    })
+
+    test("prefers the declared path when it is already a valid root", async () => {
+      await using tmp = await tmpdir()
+      const outer = path.join(tmp.path, "outer")
+      await scaffoldDevEcoHome(outer)
+      await scaffoldDevEcoHome(path.join(outer, "xin", "DevEco Studio"))
+      expect(await resolveDevEcoHome(outer)).toBe(outer)
+    })
+
+    test("never descends into toolchain folders that may hold a second copy", async () => {
+      await using tmp = await tmpdir()
+      const shallow = path.join(tmp.path, "shallow")
+      await fs.mkdir(path.dirname(nodePath(shallow)), { recursive: true })
+      await Bun.write(nodePath(shallow), "")
+      await scaffoldDevEcoHome(path.join(shallow, "tools", "DevEco Studio"))
+      expect(await resolveDevEcoHome(shallow)).toBeUndefined()
+    })
+
+    test("stops at the depth bound", async () => {
+      await using tmp = await tmpdir()
+      const container = path.join(tmp.path, "deep")
+      await scaffoldDevEcoHome(path.join(container, "a", "b", "c", "DevEco Studio"))
+      expect(await resolveDevEcoHome(container)).toBeUndefined()
+    })
+  })
+
+  describe("validateHome()", () => {
+    test("names the reason a declared path is unusable", async () => {
+      await using tmp = await tmpdir()
+
+      const noNode = path.join(tmp.path, "no-node")
+      await fs.mkdir(noNode, { recursive: true })
+      expect(await validateHome(noNode)).toEqual({ ok: false, reason: "NO_NODE" })
+
+      const noProduct = path.join(tmp.path, "no-product")
+      await fs.mkdir(path.dirname(nodePath(noProduct)), { recursive: true })
+      await Bun.write(nodePath(noProduct), "")
+      expect(await validateHome(noProduct)).toEqual({ ok: false, reason: "NO_PRODUCT_INFO" })
+
+      const outdated = path.join(tmp.path, "outdated")
+      await scaffoldDevEcoHome(outdated, "5.0.0")
+      expect(await validateHome(outdated)).toEqual({ ok: false, reason: "BAD_VERSION" })
+
+      expect(await validateHome(path.join(tmp.path, "absent"))).toEqual({ ok: false, reason: "MISSING_DIR" })
+    })
+  })
+
+  describe("getDevEcoHome()", () => {
+    test("keeps the rejected path when a saved home recovers from it", async () => {
+      await using tmp = await tmpdir()
+      const shallow = path.join(tmp.path, "shallow-config")
+      await fs.mkdir(shallow, { recursive: true })
+      const savedHome = path.join(tmp.path, "saved-home")
+      await scaffoldDevEcoHome(savedHome)
+      await useStateDir(tmp.path)
+      await saveDevEcoHome(savedHome)
+
+      await withDevecoHome(shallow, async () => {
+        const outcome = await getDevEcoHome()
+        expect(outcome.ok).toBe(true)
+        if (!outcome.ok) return
+        expect(outcome.home).toBe(savedHome)
+        expect(outcome.source).toBe("saved")
+        expect(outcome.rejections).toEqual([{ path: shallow, reason: "NO_NODE" }])
+        expect(devEcoHomeWarning(outcome)).toContain(shallow)
+      })
+    })
+
+    test("resolves a nested root straight from a shallow DEVECO_HOME", async () => {
+      await using tmp = await tmpdir()
+      const container = path.join(tmp.path, "DevEco Studio")
+      const nested = path.join(container, "xin", "DevEco Studio")
+      await scaffoldDevEcoHome(nested)
+      await useStateDir(tmp.path)
+
+      await withDevecoHome(container, async () => {
+        const outcome = await getDevEcoHome()
+        expect(outcome.ok && outcome.home).toBe(nested)
+        expect(outcome.ok && outcome.source).toBe("env")
+      })
+    })
+
+    test("reports no warning when the configured path was used as declared", async () => {
+      await using tmp = await tmpdir()
+      const home = path.join(tmp.path, "as-declared")
+      await scaffoldDevEcoHome(home)
+      await useStateDir(tmp.path)
+
+      await withDevecoHome(home, async () => {
+        const outcome = await getDevEcoHome()
+        expect(outcome.ok && outcome.source).toBe("env")
+        expect(devEcoHomeWarning(outcome)).toBeUndefined()
+      })
+    })
+
+    test("memoizes one scan per DEVECO_HOME", async () => {
+      await using tmp = await tmpdir()
+      await useStateDir(tmp.path)
+      const promises: ReturnType<typeof getDevEcoHome>[] = []
+      await withDevecoHome(undefined, async () => {
+        promises.push(getDevEcoHome(), getDevEcoHome())
+      })
+      await withDevecoHome(path.join(tmp.path, "another"), async () => {
+        promises.push(getDevEcoHome())
+      })
+      expect(promises[1]).toBe(promises[0])
+      expect(promises[2]).not.toBe(promises[0])
+    })
+  })
+
+  describe("devEcoHomeMissingMessage()", () => {
+    test("names the rejected path and the markers a root must carry", () => {
+      const message = devEcoHomeMissingMessage({
+        ok: false,
+        rejections: [{ path: "D:\\DevEco Studio", reason: "NO_PRODUCT_INFO" }],
+        tried: [],
+      })
+      expect(message).toContain("D:\\DevEco Studio")
+      expect(message).toContain("product-info.json")
+      expect(message).toContain("DEVECO_HOME")
+    })
+
+    test("lists the candidates it searched when nothing was configured", () => {
+      const message = devEcoHomeMissingMessage({ ok: false, rejections: [], tried: ["C:\\a", "D:\\b"] })
+      expect(message).toContain("Searched: C:\\a, D:\\b")
+    })
+  })
+
+  describe("buildEnv() node directory", () => {
+    test("puts the platform-specific node folder on PATH", async () => {
+      await using tmp = await tmpdir()
+      const home = path.join(tmp.path, "deveco-env-node")
+      await scaffoldDevEcoHome(home)
+      const nodeDir =
+        process.platform === "win32" ? path.join(home, "tools", "node") : path.join(home, "tools", "node", "bin")
+      expect(buildEnv(home, sdkPath(home)).PATH).toContain(nodeDir)
     })
   })
 })

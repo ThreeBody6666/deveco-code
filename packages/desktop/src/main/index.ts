@@ -103,6 +103,15 @@ function ensureLoopbackNoProxy() {
   upsert("no_proxy")
 }
 
+function storedStudioPath() {
+  try {
+    const value = getStore(SETTINGS_STORE).get(ENV_DOCTOR_STUDIO_PATH_KEY)
+    return typeof value === "string" && value.length > 0 ? value : undefined
+  } catch {
+    return undefined
+  }
+}
+
 const main = Effect.gen(function* () {
   contextMenu({ showSaveImageAs: true, showLookUpSelection: false, showSearchWithGoogle: false })
 
@@ -197,7 +206,7 @@ const main = Effect.gen(function* () {
     return
   }
 
-  preferAppEnv(app.getPath("userData"))
+  preferAppEnv(app.getPath("userData"), storedStudioPath())
 
   app.on("second-instance", (_event: Event, argv: string[]) => {
     const urls = argv.filter((arg: string) => arg.startsWith("opencode://"))
@@ -286,18 +295,16 @@ const main = Effect.gen(function* () {
   const envDoctor = createEnvDoctorController(
     createDefaultEnvDoctorDeps({
       selfVersion: () => app.getVersion(),
-      readCustomStudioPath: async () => {
-        try {
-          const v = getStore(SETTINGS_STORE).get(ENV_DOCTOR_STUDIO_PATH_KEY)
-          return typeof v === "string" && v.length > 0 ? v : undefined
-        } catch {
-          return undefined
-        }
-      },
+      readCustomStudioPath: async () => storedStudioPath(),
       writeCustomStudioPath: async (path) => {
         const store = getStore(SETTINGS_STORE)
-        if (!path) store.delete(ENV_DOCTOR_STUDIO_PATH_KEY)
-        else store.set(ENV_DOCTOR_STUDIO_PATH_KEY, path)
+        if (!path) {
+          store.delete(ENV_DOCTOR_STUDIO_PATH_KEY)
+          delete process.env.DEVECO_HOME
+          return
+        }
+        store.set(ENV_DOCTOR_STUDIO_PATH_KEY, path)
+        process.env.DEVECO_HOME = path
       },
     }),
   )

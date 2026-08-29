@@ -1,0 +1,13 @@
+Open a HarmonyOS project in DevEco Studio.
+
+The Studio executable always comes from the discovered DevEco home, never from a caller-supplied
+program name, and each project path needs user approval the first time it is used.
+
+Call this tool:
+- When the user asks to inspect or change something that only the DevEco Studio GUI exposes
+  (layout editor, signing wizard, emulator manager, profiler)
+- When a task needs the IDE to be opened on a specific project
+
+Do NOT call this tool:
+- To build, install or run an application (use build_project and start_app)
+- To start an emulator (use harmony_devices to pick an image, then start_app)

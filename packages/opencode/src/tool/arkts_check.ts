@@ -18,7 +18,7 @@ import os from "os"
 import path from "path"
 import { Effect, Schema } from "effect"
 import * as Tool from "./tool"
-import { findDevEcoHome, nodePath } from "./lib/env"
+import { findDevEcoHome, nodePath } from "./lib/deveco-home"
 import { getSessionCwd } from "./lib/session-cwd"
 import ARKTS_CHECK_SCRIPT_RAW from "./arkts-check.cjs" with { type: "text" }
 import DESCRIPTION from "./arkts-check.txt"

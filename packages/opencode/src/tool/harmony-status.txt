@@ -1,0 +1,13 @@
+Report the resolved DevEco Studio environment for HarmonyOS work.
+
+Lists the discovered install root, how it was resolved (DEVECO_HOME, a saved pick, or
+auto-discovery), and whether the SDK, hdc, emulator launcher and DevEco Studio binary exist.
+
+Call this tool:
+- Before build_project, start_app, harmony_devices or hdc_log when the toolchain has not been confirmed in this session
+- When a HarmonyOS tool reports that DevEco Studio was not found
+- When the user asks whether the Studio or emulator setup is working
+
+Do NOT call this tool:
+- To find devices or emulator images (use harmony_devices)
+- Repeatedly to decide the same thing; the resolution is cached until the configured path changes

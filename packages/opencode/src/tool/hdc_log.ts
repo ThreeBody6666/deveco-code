@@ -15,7 +15,7 @@
 
 import { Effect, Schema } from "effect"
 import * as Tool from "./tool"
-import { findDevEcoHome, hdcPath } from "./lib/env"
+import { findDevEcoHome, hdcPath } from "./lib/deveco-home"
 import DESCRIPTION from "./hdc-log.txt"
 
 function pick(input: string, prefix: string, lines: number) {

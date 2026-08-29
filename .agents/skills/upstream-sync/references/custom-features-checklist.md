@@ -120,3 +120,30 @@
 文件：`packages/opencode/src/config/agent.ts` 和 `command.ts`
 
 - [ ] **搜索模式**：pattern 数组中不含 `/.opencode/` 条目，只有 `/.deveco/`
+
+## 10. DevEco Studio 路径发现链 + 模拟器工具（2026-08-29 新增）
+
+文件：`packages/opencode/src/tool/lib/deveco-home.ts`（由 `tool/lib/env.ts` **改名**，上游无同名文件）
+
+- [ ] **改名已生效**：`cli/cmd/tui.ts`、`tool/hdc_log.ts`、`tool/arkts_check.ts`、`tool/skill.ts`、`tool/lib/harmony_napi.ts`、`plugin/harmony-napi-dynamic-tools.ts`、`test/tool/lib/deveco-home.test.ts` 均 import `deveco-home`；全仓不应残留 `tool/lib/env` 引用
+- [ ] **下钻发现**：`resolveDevEcoHome()` 直连校验失败后走 `descend()`（深度 ≤2、每层 ≤24 子目录、总探测 ≤120；`SKIP_DIRS` 含 `tools`/`sdk`/`jbr`/`bin`/`lib` 等），用于纠正指向容器目录的 `DEVECO_HOME`（实例：`E:\DevEco Studio` → `E:\DevEco Studio\xin\DevEco Studio`）
+- [ ] **拒绝原因**：`validateHome()` → `MISSING_DIR|NO_NODE|NO_PRODUCT_INFO|BAD_VERSION`；`getDevEcoHome()` → `{ok, home, version, source, rejections}`，`source ∈ env|saved|discovered`；`findDevEcoHome()` 仍返回 `string | undefined`
+- [ ] **缓存**：`getDevEcoHome()` 按 `DEVECO_HOME + Global.Path.state` 记忆化；`invalidateDevEcoHomeCache()` 存在
+- [ ] **诊断文案**：`devEcoHomeWarning()` / `devEcoHomeMissingMessage()` 被 `skill.ts`、`harmony_napi.ts`、`harmony-napi-dynamic-tools.ts`、`harmony_status.ts`、`harmony_devices.ts` 使用；**不得**退回旧文案 "PLEASE set your DEVECO_HOME path manually and restart"
+- [ ] **`buildEnv()` 有生产调用方**（曾是死代码）：`plugin/harmony-napi-dynamic-tools.ts` 启动时 `Object.assign(process.env, buildEnv(resolution.home, sdkPath(resolution.home)))`；win32 追加的是 `tools\node`，**不是** `tools\node\bin`
+- [ ] **`UI_VERIFY_ENV` 定义在 `deveco-home.ts`**（不放 `harmony_napi.ts`，否则只读工具会拖入原生桥 `addon()` 加载）
+- [ ] **`harmony_napi.ts` 日志目录**用 `Global.Path.data`，不再是手写的 `~/.local/share/deveco`（Windows 上会落到 `C:\Users\<name>\.local`）
+
+文件：`packages/desktop/src/main/server.ts`、`packages/desktop/src/main/index.ts`
+
+- [ ] **`preferAppEnv(userDataPath, studioPath?)`** 第二参来自 electron-store `envDoctorStudioPath`（经 `index.ts` 的 `storedStudioPath()`），且 `DEVECO_HOME` 位于展开的**最后**以压过 shell 探测值；`writeCustomStudioPath` 同步写/删 `process.env.DEVECO_HOME`
+- [ ] `createSidecarEnv()` 原样拷贝 `process.env`，故 sidecar 及子孙进程自动继承，**不需要**在 sidecar 侧重复注入
+
+新增内建工具（顺带补登记：§1 从未列出 `arktscheck`，核对时别忘了）
+
+- [ ] `harmony_status.ts` + `harmony-status.txt`（id `harmony_status`）：只读探测，输出 home/来源/版本 + sdk/hdc/emulator/studio 存在性 + `UI_VERIFY_*` 完成度
+- [ ] `harmony_devices.ts` + `harmony-devices.txt`（id `harmony_devices`）：合并 `hdc list targets`（5s 超时 + `unref`，过滤 `[Empty]`）与 `%LOCALAPPDATA%\Huawei\Emulator\deployed\lists.json`（**数组**，字段 `name`/`type`/`apiVersion`/`showVersion`），匹配到才标 `[live as <serial>]`，不做名字↔序列号的猜测性匹配
+- [ ] `harmony_open_studio.ts` + `harmony-open-studio.txt`（id `harmony_open_studio`）：可执行文件只来自 `studioBinaryPath(home)`；`project_path` 必须绝对且为已存在目录；逐路径 `ctx.ask({permission:"harmony_open_studio", patterns:[project], always:[project]})`；`Bun.spawn(..., detached:true)` + `unref()`
+- [ ] 三者的 registry 四处接线齐备（import / `yield*` / `Tool.init` / Builtin 列表），且 `test/tool/deveco-builtin-tools.test.ts` 的 `DEVECO_REGISTRY_TOOL_NAMES` 含这三个 id
+- [ ] **agent.ts**：debug agent 权限块含 `harmony_status: "allow"`、`harmony_devices: "allow"`（与 `hdc_log` 同列）；`harmony_open_studio` 有意不加，走 `evaluate()` 未匹配即 `"ask"` 的默认
+- [ ] **安全边界**：`harmony_open_studio` 刻意**不**经过桌面 `open-path` IPC，`packages/desktop/src/main/apps.ts` 的 `isAllowedOpenApp` 白名单里也没有 `devecostudio`；不要为了"打通"该功能去扩白名单（`resolveWindowsAppPath` 是子串模糊匹配，扩进去等于放开任意 PATH 可解析程序）

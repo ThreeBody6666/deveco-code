@@ -1,0 +1,14 @@
+List HarmonyOS targets: devices and emulators currently reachable through hdc, plus the
+emulator images installed on this machine.
+
+An installed image that is not also a live hdc target is not running. start_app launches a
+selected image automatically, so never start an emulator with a shell command.
+
+Call this tool:
+- Before choosing where to build, install or run an application
+- When the user names an emulator (for example "run it on Mate 80 Pro")
+- To confirm a target appeared after start_app
+
+Do NOT call this tool:
+- To collect logs (use hdc_log)
+- To check whether the Studio toolchain is configured (use harmony_status)

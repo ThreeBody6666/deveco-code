@@ -184,6 +184,8 @@ export const layer = Layer.effect(
                 build_project: "allow",
                 start_app: "allow",
                 hdc_log: "allow",
+                harmony_status: "allow",
+                harmony_devices: "allow",
               }),
               user,
             ),

@@ -16,6 +16,7 @@
 import type { Plugin } from '@opencode-ai/plugin'
 import { tool } from '@opencode-ai/plugin'
 import { callHarmonyNapiTool, resolveUIVerifyParams } from '../tool/lib/harmony_napi'
+import { buildEnv, devEcoHomeMissingMessage, getDevEcoHome, sdkPath, UI_VERIFY_ENV } from '../tool/lib/deveco-home'
 import { getSessionCwd } from '../tool/lib/session-cwd';
 import emulatorTools from '../tool/lib/emulator_tools.json' with { type: "json" }
 import { Schema, Exit, Cause } from "effect"
@@ -414,6 +415,11 @@ function resolveWorktree(ctx: { sessionID?: string; directory?: string; worktree
 
 
 const HarmonyNapiDynamicToolsPlugin: Plugin = async (_input) => {
+  // Resolved once per (DEVECO_HOME, state dir): the toolchain directories must be on PATH
+  // before any skill script or shell child runs, not just before a bridge call.
+  const resolution = await getDevEcoHome()
+  if (resolution.ok) Object.assign(process.env, buildEnv(resolution.home, sdkPath(resolution.home)))
+  const missing = resolution.ok ? undefined : devEcoHomeMissingMessage(resolution)
   const listed = normalizeToolList(emulatorTools);
   const tools = Object.fromEntries(
     listed.map(({ name, description, inputSchema }) => {
@@ -421,12 +427,17 @@ const HarmonyNapiDynamicToolsPlugin: Plugin = async (_input) => {
         description: buildProxiedToolDescription(name, description),
         args: inputSchemaToZodArgs(inputSchema),
         async execute(args, ctx) {
-          if (!process.env.DEVECO_HOME?.trim()) throw new Error('DEVECO_HOME environment variable is not configured. PLEASE set your DEVECO_HOME path manually and restart.');
+          if (missing) throw new Error(missing);
           const worktree = resolveWorktree(ctx as { sessionID?: string; directory?: string; worktree?: string });
           if (name === 'verify_ui') {
             const params = await resolveUIVerifyParams(worktree);
             if (!params.baseURL || !params.apiKey || !params.modelName) {
-              return "工具调用失败。请将以下内容原文告知用户，不要修改或补充，告知后立即停止，不要再调用任何工具：「UI 意图校验功能不可用：未配置多模态模型。请在配置文件中为 ui_verification agent 配置一个支持多模态的模型，或登录账号以使用内置多模态模型。」"
+              const set = UI_VERIFY_ENV.filter((env) => process.env[env]?.trim());
+              const partial =
+                set.length > 0 && set.length < UI_VERIFY_ENV.length
+                  ? `另外检测到环境变量只配置了一部分（已有 ${set.join('、')}，缺 ${UI_VERIFY_ENV.filter((env) => !set.includes(env)).join('、')}）。`
+                  : '';
+              return `工具调用失败。请将以下内容原文告知用户，不要修改或补充，告知后立即停止，不要再调用任何工具：「UI 意图校验功能不可用：未配置多模态模型。请在配置文件中为 ui_verification agent 配置一个支持多模态的模型，或登录账号以使用内置多模态模型。${partial}」`
             }
           }
           // Validate direct tool arguments against the original schema. A legacy

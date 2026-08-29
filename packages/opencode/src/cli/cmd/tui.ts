@@ -20,7 +20,7 @@ import {
 } from "@opencode-ai/core/util/opencode-process"
 import { validateSession } from "../tui/validate-session"
 import * as prompts from "@clack/prompts"
-import { findDevEcoHomes, isDevEcoHome, loadSavedDevEcoHome, resolveDevEcoHome, saveDevEcoHome } from "@/tool/lib/env"
+import { findDevEcoHomes, isDevEcoHome, loadSavedDevEcoHome, resolveDevEcoHome, saveDevEcoHome } from "@/tool/lib/deveco-home"
 import { win32InstallCtrlCGuard } from "@opencode-ai/tui/terminal-win32"
 
 declare global {

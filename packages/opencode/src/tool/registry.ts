@@ -17,6 +17,9 @@ import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
 import { SkillTool } from "./skill"
 import { HdcLogTool } from "./hdc_log"
+import { HarmonyDevicesTool } from "./harmony_devices"
+import { HarmonyOpenStudioTool } from "./harmony_open_studio"
+import { HarmonyStatusTool } from "./harmony_status"
 import { SwitchCwdTool } from "./switch-cwd"
 import { OhKnowledgeTool } from "./oh_knowledge"
 import { ArktsCheckTool } from "./arkts_check"
@@ -115,6 +118,9 @@ export const layer = Layer.effect(
     const skilltool = yield* SkillTool
     const specwrite = yield* SpecWriteTool
     const hdclog = yield* HdcLogTool
+    const harmonystatus = yield* HarmonyStatusTool
+    const harmonydevices = yield* HarmonyDevicesTool
+    const harmonystudio = yield* HarmonyOpenStudioTool
     const switchcwd = yield* SwitchCwdTool
     const ohknowledge = yield* OhKnowledgeTool
     const arktscheck = yield* ArktsCheckTool
@@ -234,6 +240,9 @@ export const layer = Layer.effect(
           planenter: Tool.init(planenter),
           spec_write: Tool.init(specwrite),
           hdclog: Tool.init(hdclog),
+          harmonystatus: Tool.init(harmonystatus),
+          harmonydevices: Tool.init(harmonydevices),
+          harmonystudio: Tool.init(harmonystudio),
           switchcwd: Tool.init(switchcwd),
           ohknowledge: Tool.init(ohknowledge),
           arktscheck: Tool.init(arktscheck),
@@ -261,6 +270,9 @@ export const layer = Layer.effect(
             ...(flags.client === "cli" ? [tool.plan, tool.planwrite, tool.planenter] : []),
             // HarmonyOS tools
             tool.hdclog,
+            tool.harmonystatus,
+            tool.harmonydevices,
+            tool.harmonystudio,
             tool.switchcwd,
             tool.arktscheck,
             ...(ohknowledgeEnabled ? [tool.ohknowledge] : []),

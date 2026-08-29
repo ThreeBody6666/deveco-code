@@ -15,9 +15,9 @@
 
 import fs from "fs"
 import { createRequire } from "node:module"
-import os from "node:os"
 import path from "path"
-import { findDevEcoHome } from "./env"
+import { Global } from "@opencode-ai/core/global"
+import { devEcoHomeMissingMessage, devEcoHomeWarning, getDevEcoHome, UI_VERIFY_ENV } from "./deveco-home"
 import { Log } from "@opencode-ai/core/util/log"
 import { DEVECO_API_URL, getTaskDefaultModelMap } from "@/plugin/deveco-models"
 import { devecoAuth, ACCESS_TOKEN_EXPIRES_MS } from "@/plugin/deveco"
@@ -80,7 +80,7 @@ export async function resolveUIVerifyParams(worktree: string) {
   } catch {}
 
   // fallback 1: 环境变量
-  if (process.env.UI_VERIFY_BASE_URL && process.env.UI_VERIFY_API_KEY && process.env.UI_VERIFY_MODEL_NAME) {
+  if (UI_VERIFY_ENV.every((name) => process.env[name]?.trim())) {
     return {
       baseURL: process.env.UI_VERIFY_BASE_URL ?? null,
       apiKey: process.env.UI_VERIFY_API_KEY ?? null,
@@ -129,15 +129,17 @@ export async function resolveUIVerifyParams(worktree: string) {
 }
 
 async function runInit(worktree: string) {
-  const devecoHome = await findDevEcoHome()
-  if (!devecoHome) {
-    throw new Error("DevEco Studio not found. Please set DEVECO_HOME to your DevEco installation directory.")
+  const outcome = await getDevEcoHome()
+  if (!outcome.ok) {
+    throw new Error(devEcoHomeMissingMessage(outcome))
   }
-  const logDir = path.join(process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share', 'deveco'), 'log', 'deveco-mcp')
+  const warning = devEcoHomeWarning(outcome)
+  if (warning) log.warn(warning)
+  const logDir = path.join(Global.Path.data, "log", "deveco-mcp")
   fs.mkdirSync(logDir, { recursive: true })
   const { baseURL, apiKey, modelName } = await resolveUIVerifyParams(worktree)
   log.info("ui_verification model", { baseURL, modelName })
-  await bridge.init(logDir, worktree, devecoHome, baseURL, apiKey, modelName)
+  await bridge.init(logDir, worktree, outcome.home, baseURL, apiKey, modelName)
 }
 
 /** Re-runs native bridge init when worktree changes or deveco token expires. */

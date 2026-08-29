@@ -4,6 +4,7 @@ import { Effect, Schema } from "effect"
 import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { Skill } from "../skill"
 import * as Tool from "./tool"
+import { devEcoHomeMissingMessage, getDevEcoHome } from "./lib/deveco-home"
 import DESCRIPTION from "./skill.txt"
 
 export const Parameters = Schema.Struct({
@@ -33,10 +34,9 @@ export const SkillTool = Tool.define(
             .require(params.name)
             .pipe(Effect.catchTag("Skill.NotFoundError", (error) => Effect.die(new Error(error.message))))
 
-          if (DevEcoRequiredSkills.has(info.name) && !process.env.DEVECO_HOME?.trim()) {
-            throw new Error(
-              "DEVECO_HOME environment variable is not configured. PLEASE set your DEVECO_HOME path manually and restart.",
-            )
+          if (DevEcoRequiredSkills.has(info.name)) {
+            const resolution = yield* Effect.tryPromise(() => getDevEcoHome())
+            if (!resolution.ok) throw new Error(devEcoHomeMissingMessage(resolution))
           }
 
           yield* ctx.ask({

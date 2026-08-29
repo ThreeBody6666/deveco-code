@@ -45,14 +45,17 @@ export function setDefaultServerUrl(url: string | null) {
   getStore().delete(DEFAULT_SERVER_URL_KEY)
 }
 
-export function preferAppEnv(userDataPath: string) {
+export function preferAppEnv(userDataPath: string, studioPath?: string) {
   const shell = process.platform === "win32" ? null : getUserShell()
+  const selected = studioPath?.trim()
   Object.assign(process.env, {
     ...(shell ? loadShellEnv(shell, getLogger()) : null),
     DEVECO_EXPERIMENTAL_ICON_DISCOVERY: "true",
     DEVECO_EXPERIMENTAL_FILEWATCHER: "true",
     DEVECO_CLIENT: "desktop",
     XDG_STATE_HOME: process.env.XDG_STATE_HOME ?? userDataPath,
+    // Applied last: a path chosen in the env-doctor dialog outranks an inherited shell value.
+    ...(selected ? { DEVECO_HOME: selected } : null),
   })
 }
 
