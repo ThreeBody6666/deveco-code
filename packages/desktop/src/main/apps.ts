@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process"
 import { access, readFile, readdir } from "node:fs/promises"
-import { dirname, extname, join } from "node:path"
+import { basename, dirname, extname, join } from "node:path"
 import util from "node:util"
 
 const execFilePromise = util.promisify(execFile)
@@ -9,6 +9,75 @@ const exists = (path: string) =>
   access(path)
     .then(() => true)
     .catch(() => false)
+
+// Mirrors the openWith values in packages/app/src/components/session/session-header.tsx.
+// Compared after stripping extension, casing, and word separators, so it matches both the
+// display names macOS sends ("Visual Studio Code") and the exe paths Windows resolves to.
+const OPEN_APPS = [
+  "code",
+  "visualstudiocode",
+  "cursor",
+  "zed",
+  "textmate",
+  "antigravity",
+  "terminal",
+  "iterm",
+  "ghostty",
+  "warp",
+  "xcode",
+  "androidstudio",
+  "powershell",
+  "sublimetext",
+  "finder",
+]
+
+// Handled by the OS default action, so these are the shell's own launch triggers.
+const EXECUTABLE_EXTENSIONS = [
+  "exe",
+  "bat",
+  "cmd",
+  "com",
+  "msi",
+  "msp",
+  "lnk",
+  "scr",
+  "ps1",
+  "psm1",
+  "vbs",
+  "vbe",
+  "jse",
+  "wsf",
+  "wsh",
+  "hta",
+  "cpl",
+]
+
+const normalizeAppName = (app: string) =>
+  basename(app)
+    .toLowerCase()
+    .replace(/\.exe$/, "")
+    .replace(/[^a-z0-9]/g, "")
+
+export function isAllowedOpenApp(app: string) {
+  const normalized = normalizeAppName(app)
+  return normalized.length > 0 && OPEN_APPS.includes(normalized)
+}
+
+export function isExecutablePath(path: string) {
+  const extension = extname(path).slice(1).toLowerCase()
+  return extension.length > 0 && EXECUTABLE_EXTENSIONS.includes(extension)
+}
+
+const BROWSER_SAFE_PROTOCOLS = ["https:", "http:", "mailto:"]
+
+export function toBrowserSafeLink(url: string) {
+  try {
+    const parsed = new URL(url)
+    return BROWSER_SAFE_PROTOCOLS.includes(parsed.protocol) ? parsed.toString() : null
+  } catch {
+    return null
+  }
+}
 
 export function checkAppExists(appName: string) {
   if (process.platform === "win32") return true

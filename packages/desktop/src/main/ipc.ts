@@ -1,12 +1,13 @@
 import { execFile } from "node:child_process"
 import { stat } from "node:fs/promises"
-import { basename } from "node:path"
+import { basename, isAbsolute } from "node:path"
 import { app, BrowserWindow, Notification, clipboard, dialog, ipcMain, shell } from "electron"
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron"
 import type { DesktopMenuAction } from "@opencode-ai/app/desktop-menu"
 
 import type { FatalRendererError, RemoteBridgeInfo, ServerReadyData, TitlebarTheme } from "../preload/types"
 import { runDesktopMenuAction } from "./desktop-menu-actions"
+import { isAllowedOpenApp, isExecutablePath, toBrowserSafeLink } from "./apps"
 import { assertAttachmentBudget, createPickedFileAuthorizations } from "./attachment-picker"
 import { getStore } from "./store"
 import { getPinchZoomEnabled, setPinchZoomEnabled, setTitlebar, updateTitlebar } from "./windows"
@@ -195,18 +196,23 @@ export function registerIpcHandlers(deps: Deps) {
   ipcMain.on("open-link", (_event: IpcMainEvent, url: string) => {
     // Terminal output and tool results feed arbitrary text here, so only
     // browser-safe schemes may reach the OS handler.
-    let parsed: URL
-    try {
-      parsed = new URL(url)
-    } catch {
-      return
-    }
-    if (parsed.protocol !== "https:" && parsed.protocol !== "http:" && parsed.protocol !== "mailto:") return
-    void shell.openExternal(parsed.toString())
+    const link = toBrowserSafeLink(url)
+    if (!link) return
+    void shell.openExternal(link)
   })
 
   ipcMain.handle("open-path", async (_event: IpcMainInvokeEvent, path: string, app?: string) => {
-    if (!app) return shell.openPath(path)
+    // Review diffs and terminal output feed arbitrary strings here, so this handler is only
+    // allowed to reach the OS with a real local path and an app the UI actually offers.
+    if (!isAbsolute(path) || path.includes("\0")) throw new Error("Refused to open a non-local path")
+    await stat(path).catch(() => {
+      throw new Error(`Refused to open missing path: ${basename(path)}`)
+    })
+    if (!app) {
+      if (isExecutablePath(path)) throw new Error(`Refused to open executable: ${basename(path)}`)
+      return shell.openPath(path)
+    }
+    if (!isAllowedOpenApp(app)) throw new Error(`Refused to launch unknown application: ${basename(app)}`)
     await new Promise<void>((resolve, reject) => {
       const [cmd, args] =
         process.platform === "darwin" ? (["open", ["-a", app, path]] as const) : ([app, [path]] as const)
