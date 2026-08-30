@@ -179,7 +179,7 @@ export const dict = {
   "provider.custom.models.name.placeholder": "Display Name",
   "provider.custom.models.contextWindow.label": "Context window",
   "provider.custom.models.contextWindow.placeholder": "128K",
-  "provider.custom.models.maxOutput.label": "Max output",
+  "provider.custom.models.maxOutput.label": "Max output tokens",
   "provider.custom.models.maxOutput.placeholder": "8K",
   "provider.custom.models.limits.description": "Leave empty to use the provider default.",
   "provider.custom.models.remove": "Remove model",

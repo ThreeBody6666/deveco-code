@@ -27,13 +27,6 @@ type Props = {
   provider?: EditableCustomProvider
 }
 
-/* Shared by the model column header and every model row so the two never drift apart. */
-const MODEL_ID_COLUMN = "flex-[2] min-w-0"
-const MODEL_NAME_COLUMN = "flex-[1.6] min-w-0"
-const MODEL_LIMIT_COLUMN = "flex-1 min-w-24"
-const MODEL_ACTION_COLUMN = "w-6 flex-none"
-const MODEL_HEADER_TEXT = "text-11-regular text-text-weaker"
-
 export function DialogCustomProvider(props: Props) {
   const dialog = useDialog()
   const serverSync = useServerSync()
@@ -239,81 +232,68 @@ export function DialogCustomProvider(props: Props) {
           <div class="flex flex-col gap-3">
             <label class="text-12-medium text-text-weak">{language.t("provider.custom.models.label")}</label>
             <p class="text-12-regular text-text-weak">{language.t("provider.custom.models.limits.description")}</p>
-            <div class="flex gap-2 items-start">
-              <div class={MODEL_ID_COLUMN}>
-                <span class={MODEL_HEADER_TEXT}>{language.t("provider.custom.models.id.label")}</span>
-              </div>
-              <div class={MODEL_NAME_COLUMN}>
-                <span class={MODEL_HEADER_TEXT}>{language.t("provider.custom.models.name.label")}</span>
-              </div>
-              <div class={MODEL_LIMIT_COLUMN}>
-                <span class={MODEL_HEADER_TEXT}>{language.t("provider.custom.models.contextWindow.label")}</span>
-              </div>
-              <div class={MODEL_LIMIT_COLUMN}>
-                <span class={MODEL_HEADER_TEXT}>{language.t("provider.custom.models.maxOutput.label")}</span>
-              </div>
-              <div class={MODEL_ACTION_COLUMN} aria-hidden="true" />
-            </div>
             <For each={form.models}>
               {(m, i) => (
-                <div class="flex gap-2 items-start" data-row={m.row}>
-                  <div class={MODEL_ID_COLUMN}>
-                    <TextField
-                      label={language.t("provider.custom.models.id.label")}
-                      hideLabel
-                      placeholder={language.t("provider.custom.models.id.placeholder")}
-                      value={m.id}
-                      onChange={(v) => setModel(i(), "id", v)}
-                      validationState={m.err.id ? "invalid" : undefined}
-                      error={m.err.id}
+                <div class="flex flex-col gap-2 rounded-lg border border-border-weak p-3" data-row={m.row}>
+                  <div class="flex gap-2 items-start">
+                    <div class="flex-1 min-w-0">
+                      <TextField
+                        label={language.t("provider.custom.models.id.label")}
+                        hideLabel
+                        placeholder={language.t("provider.custom.models.id.placeholder")}
+                        value={m.id}
+                        onChange={(v) => setModel(i(), "id", v)}
+                        validationState={m.err.id ? "invalid" : undefined}
+                        error={m.err.id}
+                      />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <TextField
+                        label={language.t("provider.custom.models.name.label")}
+                        hideLabel
+                        placeholder={language.t("provider.custom.models.name.placeholder")}
+                        value={m.name}
+                        onChange={(v) => setModel(i(), "name", v)}
+                        validationState={m.err.name ? "invalid" : undefined}
+                        error={m.err.name}
+                      />
+                    </div>
+                    <IconButton
+                      type="button"
+                      icon="trash"
+                      variant="ghost"
+                      class="mt-1.5"
+                      onClick={() => removeModel(i())}
+                      disabled={form.models.length <= 1}
+                      aria-label={language.t("provider.custom.models.remove")}
                     />
                   </div>
-                  <div class={MODEL_NAME_COLUMN}>
-                    <TextField
-                      label={language.t("provider.custom.models.name.label")}
-                      hideLabel
-                      placeholder={language.t("provider.custom.models.name.placeholder")}
-                      value={m.name}
-                      onChange={(v) => setModel(i(), "name", v)}
-                      validationState={m.err.name ? "invalid" : undefined}
-                      error={m.err.name}
-                    />
+                  <div class="flex gap-2 items-start">
+                    <div class="flex-1 min-w-0">
+                      <TextField
+                        label={language.t("provider.custom.models.contextWindow.label")}
+                        placeholder={language.t("provider.custom.models.contextWindow.placeholder")}
+                        value={m.contextWindow}
+                        onChange={(v) => setModel(i(), "contextWindow", v)}
+                        validationState={m.err.contextWindow ? "invalid" : undefined}
+                        error={m.err.contextWindow}
+                      />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <TextField
+                        label={language.t("provider.custom.models.maxOutput.label")}
+                        placeholder={language.t("provider.custom.models.maxOutput.placeholder")}
+                        value={m.maxOutput}
+                        onChange={(v) => setModel(i(), "maxOutput", v)}
+                        validationState={m.err.maxOutput ? "invalid" : undefined}
+                        error={m.err.maxOutput}
+                      />
+                    </div>
                   </div>
-                  <div class={MODEL_LIMIT_COLUMN}>
-                    <TextField
-                      label={language.t("provider.custom.models.contextWindow.label")}
-                      hideLabel
-                      placeholder={language.t("provider.custom.models.contextWindow.placeholder")}
-                      value={m.contextWindow}
-                      onChange={(v) => setModel(i(), "contextWindow", v)}
-                      validationState={m.err.contextWindow ? "invalid" : undefined}
-                      error={m.err.contextWindow}
-                    />
-                  </div>
-                  <div class={MODEL_LIMIT_COLUMN}>
-                    <TextField
-                      label={language.t("provider.custom.models.maxOutput.label")}
-                      hideLabel
-                      placeholder={language.t("provider.custom.models.maxOutput.placeholder")}
-                      value={m.maxOutput}
-                      onChange={(v) => setModel(i(), "maxOutput", v)}
-                      validationState={m.err.maxOutput ? "invalid" : undefined}
-                      error={m.err.maxOutput}
-                    />
-                  </div>
-                  <IconButton
-                    type="button"
-                    icon="trash"
-                    variant="ghost"
-                    class="mt-1.5"
-                    onClick={() => removeModel(i())}
-                    disabled={form.models.length <= 1}
-                    aria-label={language.t("provider.custom.models.remove")}
-                  />
                 </div>
               )}
             </For>
-            <Button type="button" size="small" variant="ghost" icon="plus-small" onClick={addModel} class="self-start">
+            <Button type="button" size="small" variant="secondary" icon="plus-small" onClick={addModel} class="self-start">
               {language.t("provider.custom.models.add")}
             </Button>
           </div>

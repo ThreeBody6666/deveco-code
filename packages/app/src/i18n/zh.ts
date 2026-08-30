@@ -198,7 +198,7 @@ export const dict = {
   "provider.custom.models.name.placeholder": "显示名称",
   "provider.custom.models.contextWindow.label": "上下文窗口",
   "provider.custom.models.contextWindow.placeholder": "128K",
-  "provider.custom.models.maxOutput.label": "最大输出",
+  "provider.custom.models.maxOutput.label": "最大输出 token",
   "provider.custom.models.maxOutput.placeholder": "8K",
   "provider.custom.models.limits.description": "留空时使用模型提供商的默认限制。",
   "provider.custom.models.remove": "移除模型",
