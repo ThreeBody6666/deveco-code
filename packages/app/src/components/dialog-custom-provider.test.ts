@@ -70,6 +70,49 @@ describe("validateCustomProvider", () => {
     })
   })
 
+  test("accepts K/M shorthand in the token limit fields", () => {
+    const form = (contextWindow: string, maxOutput: string) => ({
+      providerID: "custom-provider",
+      name: "Custom Provider",
+      baseURL: "https://api.example.com",
+      apiKey: "secret",
+      models: [{ row: "m0", id: "model-a", name: "Model A", contextWindow, maxOutput, err: {} }],
+      headers: [],
+      err: {},
+    })
+    const limit = (contextWindow: string, maxOutput: string) =>
+      validateCustomProvider({ form: form(contextWindow, maxOutput), t, disabledProviders: [], existingProviderIDs: new Set() })
+        .result!.config.models["model-a"].limit
+
+    expect(limit("128K", "1.5M")).toEqual({ context: 128_000, output: 1_500_000 })
+    expect(limit("200k", "8 m")).toEqual({ context: 200_000, output: 8_000_000 })
+    expect(limit("262144", "")).toEqual({ context: 262_144, output: 8_192 })
+    expect(limit("", "")).toBeUndefined()
+  })
+
+  test("rejects token limits that are neither positive numbers nor shorthand", () => {
+    const error = (contextWindow: string) =>
+      validateCustomProvider({
+        form: {
+          providerID: "custom-provider",
+          name: "Custom Provider",
+          baseURL: "https://api.example.com",
+          apiKey: "secret",
+          models: [{ row: "m0", id: "model-a", name: "Model A", contextWindow, maxOutput: "", err: {} }],
+          headers: [],
+          err: {},
+        },
+        t,
+        disabledProviders: [],
+        existingProviderIDs: new Set(),
+      }).models[0].contextWindow
+
+    for (const value of ["0", "-1", "128KB", "1.5G", "1e3", "abc", "12.5", "K"]) {
+      expect(error(value)).toBe("provider.custom.error.tokenLimit")
+    }
+    expect(error("128K")).toBeUndefined()
+  })
+
   test("flags duplicate rows and allows reconnecting disabled providers", () => {
     const result = validateCustomProvider({
       form: {

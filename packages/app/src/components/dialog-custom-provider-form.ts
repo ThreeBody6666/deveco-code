@@ -139,8 +139,8 @@ export function validateCustomProvider(input: ValidateArgs) {
     return {
       id: idError,
       name: nameError,
-      contextWindow: contextWindow === "invalid" ? input.t("provider.custom.error.positiveInteger") : undefined,
-      maxOutput: maxOutput === "invalid" ? input.t("provider.custom.error.positiveInteger") : undefined,
+      contextWindow: contextWindow === "invalid" ? input.t("provider.custom.error.tokenLimit") : undefined,
+      maxOutput: maxOutput === "invalid" ? input.t("provider.custom.error.tokenLimit") : undefined,
     }
   })
   const modelsValid = models.every((m) => !m.id && !m.name && !m.contextWindow && !m.maxOutput)
@@ -218,11 +218,17 @@ let row = 0
 
 const nextRow = () => `row-${row++}`
 
+/* Matches the decimal K/M shorthand session-summary-tab.tsx uses to display token counts. */
+const TOKEN_SUFFIX_MULTIPLIERS: Record<string, number> = { k: 1_000, m: 1_000_000 }
+
 const parseOptionalTokenLimit = (value: string) => {
   const trimmed = value.trim()
   if (!trimmed) return undefined
-  const number = Number(trimmed)
-  return Number.isSafeInteger(number) && number > 0 ? number : "invalid"
+  const match = /^(\d+(?:\.\d+)?)\s*([km])?$/i.exec(trimmed)
+  if (!match) return "invalid"
+  const multiplier = match[2] ? TOKEN_SUFFIX_MULTIPLIERS[match[2].toLowerCase()] : 1
+  const tokens = Number(match[1]) * multiplier
+  return Number.isSafeInteger(tokens) && tokens > 0 ? tokens : "invalid"
 }
 
 export const modelRow = (): ModelRow => ({ row: nextRow(), id: "", name: "", contextWindow: "", maxOutput: "", err: {} })
