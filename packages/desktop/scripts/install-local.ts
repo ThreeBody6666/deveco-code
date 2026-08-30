@@ -45,6 +45,30 @@ const portableRoot = process.env.DEVECO_CODE_INSTALL_DIR
 const portableAppOut = resolve(portableRoot, ...platform.appOut)
 const backupDir = resolve(portableRoot, "..", ".deveco-backups")
 
+/* install:local hot-patches out/ only, so resources/app/package.json kept whatever version
+ * the original packaged build shipped with and app.getVersion() lied about it. */
+const appPackagePath = resolve(portableAppOut, "..", "package.json")
+const sourceVersion = String(
+  (JSON.parse(readFileSync(resolve(desktopRoot, "package.json"), "utf8")) as { version?: string }).version ?? "",
+)
+
+/* Packaged installs write this file with a UTF-8 BOM, which JSON.parse rejects even though
+ * require() tolerates it. */
+function readAppPackage(file: string): Record<string, unknown> | undefined {
+  if (!existsSync(file)) return undefined
+  try {
+    const text = readFileSync(file, "utf8")
+    return JSON.parse(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text) as Record<string, unknown>
+  } catch (err) {
+    console.warn(`Installed app package.json is unreadable, skipping version sync: ${file}`, err)
+    return undefined
+  }
+}
+
+function appVersionOf(app: Record<string, unknown> | undefined) {
+  return typeof app?.version === "string" ? app.version : undefined
+}
+
 if (!existsSync(outDir)) {
   console.error(`Build output not found: ${outDir}`)
   process.exit(1)
@@ -93,6 +117,7 @@ if (existsSync(portableAppOut) && !skipBackup) {
     timestamp: new Date().toISOString(),
     source: portableAppOut,
     backupPath,
+    appVersion: appVersionOf(readAppPackage(appPackagePath)) ?? null,
     fingerprint,
   }
   const manifestPath = resolve(backupDir, "latest-backup.json")
@@ -117,6 +142,17 @@ try {
     console.error("Run: bun run rollback:local")
   }
   process.exit(1)
+}
+
+const appPackage = readAppPackage(appPackagePath)
+const previousVersion = appVersionOf(appPackage)
+if (appPackage && sourceVersion && previousVersion && previousVersion !== sourceVersion) {
+  try {
+    writeFileSync(appPackagePath, JSON.stringify({ ...appPackage, version: sourceVersion }, null, 2) + "\n")
+    console.log(`Synced app version: ${previousVersion} -> ${sourceVersion}`)
+  } catch (err) {
+    console.warn("Installed app package.json version not updated (out/ is still current):", err)
+  }
 }
 
 console.log("Local installation updated.")

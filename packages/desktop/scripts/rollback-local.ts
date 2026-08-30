@@ -6,7 +6,7 @@
 // re-verifies after copy.
 
 import { spawnSync } from "node:child_process"
-import { cpSync, existsSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs"
+import { cpSync, existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { createHash } from "node:crypto"
 import { homedir } from "node:os"
 import { resolve, join } from "node:path"
@@ -52,6 +52,7 @@ const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
   timestamp: string
   source: string
   backupPath: string
+  appVersion?: string | null
   fingerprint: { fileCount: number; totalBytes: number; sampleHash: string }
 }
 
@@ -111,6 +112,22 @@ const restoredFp = computeDirFingerprint(portableAppOut)
 if (restoredFp.fileCount !== expected.fileCount || restoredFp.totalBytes !== expected.totalBytes) {
   console.error("Post-restore verification failed — file count or size mismatch.")
   process.exit(1)
+}
+
+const appPackagePath = resolve(portableAppOut, "..", "package.json")
+if (manifest.appVersion) {
+  try {
+    const text = readFileSync(appPackagePath, "utf8")
+    const app = JSON.parse(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text) as Record<string, unknown>
+    if (app.version !== manifest.appVersion) {
+      writeFileSync(appPackagePath, JSON.stringify({ ...app, version: manifest.appVersion }, null, 2) + "\n")
+      console.log(`  Restored app version: ${String(app.version)} -> ${manifest.appVersion}`)
+    }
+  } catch (err) {
+    console.warn("App package.json version not restored (out/ was restored):", err)
+  }
+} else {
+  console.warn("This backup predates app version tracking; resources/app/package.json was left as-is.")
 }
 
 console.log("Rollback complete. Installation restored to pre-overwrite state.")
